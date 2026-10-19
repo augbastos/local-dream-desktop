@@ -1,0 +1,5 @@
+{
+  "_config_help": "Copy to local.json next to sdgen.py, or set LDPC_CONFIG to this configuration file's path.",
+  "out": "~/LocalDreamDesktop",
+  "usb_port_base": 47810
+}

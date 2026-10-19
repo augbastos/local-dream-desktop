@@ -1,0 +1,40 @@
+name: Package
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r requirements-build.txt
+      - run: python tools/build_release.py
+      - run: python tools/smoke_package.py --package dist/LocalDreamDesktop
+        env:
+          LDPC_NO_ADB: '1'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: LocalDreamDesktop-${{ runner.os }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+          if-no-files-found: error
+  # macos-package:
+  #   runs-on: macos-latest
+  #   Disabled to conserve private-repository minutes. Unsigned macOS candidates
+  #   are UNTESTED; build natively with tools/build_release.py when needed.

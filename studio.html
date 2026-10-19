@@ -1,0 +1,1620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Dream Desktop (unofficial)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23cfbcff' d='M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z'/%3E%3C/svg%3E">
+<style>
+  /* Visual language sampled from the Local Dream app (Material 3 dark, lavender primary) */
+  :root {
+    --bg: #141218; --card: #1d1b20; --card-hi: #211f26; --line: #938f99; --line-soft: #49454f;
+    --on: #e6e0e9; --on-soft: #cac4d0; --primary: #cfbcff; --on-primary: #381e72; --primary-dim: #4f378b;
+    --chip: #2b2930; --err-bg: #601410; --err-on: #f9dedc; --gold: #f4c95d; --ok: #7dd3a8;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+  body { margin: 0; background: var(--bg); color: var(--on); font: 15px/1.5 Roboto, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  svg { width: 22px; height: 22px; fill: currentColor; flex: none; }
+
+  header { max-width: 1320px; margin: auto; padding: 22px 32px 6px; display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .titles { flex: 1; min-width: 280px; }
+  .brand { color: var(--on-soft); font-size: 14px; letter-spacing: .4px; display: flex; align-items: center; gap: 6px; }
+  .brand .spark { color: var(--gold); }
+  h1 { font-size: 40px; font-weight: 400; margin: 6px 0 0; line-height: 1.15; }
+  .sub { color: var(--on-soft); font-size: 17px; margin-top: 2px; }
+  .status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; color: var(--on-soft); font-size: 13.5px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; background: var(--chip); border-radius: 8px; padding: 4px 10px; font-size: 12.5px; font-weight: 500; letter-spacing: .3px; border: 0; }
+  .pill.npu { color: var(--primary); border: 1px solid var(--primary-dim); background: transparent; }
+  .pill.gone { color: var(--on-soft); border: 1px dashed var(--line-soft); background: transparent; }
+  .pill.off { background: var(--err-bg); color: var(--err-on); cursor: pointer; font-size: 13px; }
+  .txtbtn { background: none; border: 0; color: var(--primary); cursor: pointer; padding: 4px 8px; border-radius: 16px; font-size: 13.5px; font-weight: 500; }
+  .txtbtn:hover { background: rgba(207,188,255,.08); }
+  .lang { display: flex; align-items: center; gap: 4px; color: var(--on-soft); padding: 6px 10px; border-radius: 20px; border: 1px solid var(--line-soft); }
+  .lang select { background: transparent; border: 0; color: var(--on); cursor: pointer; outline: 0; }
+  .lang select option { background: var(--card); }
+
+  main { max-width: 1320px; margin: auto; padding: 18px 32px 48px; display: grid; grid-template-columns: minmax(330px, 440px) 1fr; gap: 24px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 14px 16px 40px; } header { padding: 18px 16px 4px; } h1 { font-size: 32px; } }
+
+  .card { background: var(--card); border-radius: 28px; padding: 24px; }
+  .field { position: relative; border: 1px solid var(--line); border-radius: 16px; margin: 6px 0 0; padding: 0; }
+  .field:focus-within { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+  .field legend { margin-left: 14px; padding: 0 6px; font-size: 12.5px; color: var(--on-soft); letter-spacing: .3px; }
+  .field textarea { display: block; width: 100%; background: transparent; border: 0; outline: 0; resize: vertical; padding: 4px 18px 14px; font-size: 16px; min-height: 96px; line-height: 1.5; }
+  .lbl { color: var(--on-soft); font-size: 13px; letter-spacing: .3px; margin: 20px 0 8px; display: flex; align-items: center; gap: 4px; }
+  .lbl .grow { flex: 1; }
+  .lbl b { color: var(--primary); font-weight: 500; }
+  .tip { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-soft); background: transparent; color: var(--on-soft); font-size: 12px; line-height: 1; cursor: pointer; padding: 0; flex: none; }
+  .tip:hover, .tip[aria-expanded="true"] { color: var(--on-primary); background: var(--primary); border-color: var(--primary); }
+  .tipbox { background: var(--chip); border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--on); margin: 0 0 8px; line-height: 1.45; }
+  select.model { width: 100%; background: var(--card-hi); border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; font-size: 16px; color: var(--on); cursor: pointer; }
+  select.model:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+  select.model option, select.model optgroup { background: var(--card); }
+  .memrow { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--on-soft); margin-top: 6px; }
+  .memrow.low #memory { color: #ffb4ab; }
+  .mdesc { color: var(--on-soft); font-size: 12.5px; margin-top: 6px; }
+  .seg { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .seg button { background: transparent; border: 1px solid var(--line); color: var(--on); border-radius: 12px; padding: 8px 4px; cursor: pointer; font-size: 13.5px; }
+  .seg button[aria-pressed="true"] { background: var(--primary-dim); border-color: var(--primary-dim); color: #eaddff; }
+  .seg small { display: block; font-size: 11.5px; opacity: .75; }
+  .refpick { width: 100%; display: flex; align-items: center; gap: 10px; background: transparent; border: 1px dashed var(--line); border-radius: 14px; padding: 12px 14px; color: var(--primary); cursor: pointer; text-align: left; }
+  .refpick:hover, .refpick.drop { background: rgba(207,188,255,.06); }
+  .refpick small { display: block; color: var(--on-soft); font-size: 12px; }
+  .ref { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 16px; background: var(--card-hi); }
+  .ref img { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; }
+  .ref .grow { flex: 1; font-size: 13px; color: var(--on-soft); }
+  #referencelist { list-style: none; padding: 0; display: grid; gap: 8px; }
+  .maskstage { position: relative; margin-top: 8px; }
+  .maskstage canvas { display: block; width: 100%; height: auto; border-radius: 12px; }
+  #maskcanvas { position: absolute; inset: 0; opacity: .45; touch-action: none; cursor: crosshair; }
+  .masktools { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .masktools [aria-pressed="true"] { background: var(--primary-dim); color: var(--on); }
+  .masktools button:disabled { opacity: .5; cursor: default; }
+  #maskeditor { margin-top: 8px; }
+  #maskeditor .lbl { margin-top: 8px; }
+  input[type=range] { width: 100%; accent-color: var(--primary); }
+  .seedrow { display: flex; gap: 8px; }
+  .seed { flex: 1; background: transparent; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; outline: 0; }
+  .seed:focus { border-color: var(--primary); }
+  details { margin-top: 18px; border-top: 1px solid var(--line-soft); padding-top: 12px; }
+  summary { cursor: pointer; color: var(--primary); display: flex; align-items: center; gap: 8px; list-style: none; font-weight: 500; }
+  summary::-webkit-details-marker { display: none; }
+  .btn { width: 100%; margin-top: 22px; background: var(--primary); color: var(--on-primary); border: 0; border-radius: 30px; padding: 15px; font-size: 17px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
+  .btn:hover { filter: brightness(1.05); }
+  .btn:disabled { opacity: .5; cursor: progress; }
+  .btn.small { width: auto; padding: 10px 26px; margin-top: 0; font-size: 15px; }
+  .btn.ghost { background: transparent; color: var(--primary); border: 1px solid var(--line); }
+  .under { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; }
+  .hint { color: var(--on-soft); font-size: 12.5px; }
+
+  .connect { text-align: left; max-width: 760px; width: 100%; }
+  .connect h3 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+  .connect .first { background: var(--chip); border-radius: 14px; padding: 10px 14px; font-size: 14px; margin: 0 0 6px; }
+  .connect .muted { color: var(--on-soft); margin: 0 0 14px; }
+  .qr { background: #fff; width: fit-content; max-width: 100%; margin: 12px 0; padding: 14px; border-radius: 16px; }
+  .qr svg { display: block; width: 260px; height: 260px; max-width: 100%; }   /* phone cameras need a big code */
+  #memory { color: var(--err-on); margin: 8px 0; }
+  .ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 6px 0 16px; }
+  .way { background: var(--card-hi); border-radius: 20px; padding: 16px 18px; }
+  .way h4 { margin: 0 0 8px; font-size: 16px; font-weight: 500; }
+  .way ol { margin: 0; padding-left: 20px; color: var(--on-soft); font-size: 14px; line-height: 1.5; }
+  .way li { margin-bottom: 6px; }
+  .note { font-size: 13.5px; margin: 10px 0 0; color: var(--on-soft); }
+  .note.live { color: var(--gold); }
+  .pairf { display: grid; gap: 10px; margin-top: 10px; }
+  .pairf label { display: grid; gap: 4px; font-size: 12.5px; color: var(--on-soft); }
+  .pairf input { background: transparent; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 15px; color: var(--on); }
+  .pairf input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+  .stage { background: var(--card); border-radius: 28px; min-height: 520px; display: grid; place-items: center; padding: 24px; text-align: center; }
+  .stage img.out { max-width: 100%; max-height: 70vh; border-radius: 20px; display: block; margin: auto; }
+  .empty .ico { width: 64px; height: 64px; color: var(--primary); }
+  .empty h3 { font-size: 21px; font-weight: 500; margin: 12px 0 4px; }
+  .empty p { color: var(--on-soft); margin: 0; }
+  .meta { color: var(--on-soft); font-size: 13.5px; margin-top: 14px; }
+  .actions { display: flex; gap: 10px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .err { margin-top: 14px; background: var(--err-bg); color: var(--err-on); border-radius: 16px; padding: 12px 16px; font-size: 14px; }
+
+  /* progress screen */
+  .prog { width: 100%; max-width: 560px; text-align: left; }
+  .prog h3 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+  .prog .facts { color: var(--on-soft); font-size: 13.5px; margin: 0 0 18px; }
+  .bar { height: 10px; border-radius: 999px; background: var(--line-soft); overflow: hidden; }
+  .bar i { display: block; width: 100%; height: 100%; background: var(--primary); border-radius: 999px; transform-origin: left; transition: transform .4s ease; }
+  .bar.indet i { width: 30%; animation: slide 1.4s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  @media (prefers-reduced-motion: reduce) { .bar.indet i { animation: none; width: 100%; opacity: .5; } .bar i { transition: none; } }
+  .times { display: flex; justify-content: space-between; color: var(--on-soft); font-size: 13px; margin: 8px 0 18px; font-variant-numeric: tabular-nums; }
+  .times b { color: var(--on); font-weight: 500; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .steps li { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 12px; font-size: 14.5px; color: var(--on-soft); }
+  .steps li.now { background: var(--card-hi); color: var(--on); }
+  .steps li.done { color: var(--on); }
+  .steps .mark { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; flex: none; border: 2px solid var(--line-soft); }
+  .steps li.done .mark { background: var(--ok); border-color: var(--ok); color: #0b3a26; }
+  .steps li.now .mark { border-color: var(--primary); border-top-color: transparent; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .steps li.now .mark { animation: none; border-top-color: var(--primary); } }
+  .steps .what { flex: 1; }
+  .steps .what small { display: block; color: var(--on-soft); font-size: 12.5px; }
+  .steps .dur { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--on-soft); }
+
+  h2.hist { font-size: 19px; font-weight: 500; margin: 28px 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .tile { position: relative; border-radius: 16px; overflow: hidden; background: var(--card); aspect-ratio: 1; }
+  .tile .open { padding: 0; border: 0; width: 100%; height: 100%; background: none; cursor: pointer; display: block; }
+  .grid img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
+  .tile:hover img { transform: scale(1.04); }
+  .tile .ov { position: absolute; inset: auto 0 0 0; display: flex; gap: 6px; padding: 8px; justify-content: center;
+    background: linear-gradient(transparent, rgba(0,0,0,.75)); opacity: 0; transition: opacity .15s; }
+  .tile:hover .ov, .tile:focus-within .ov { opacity: 1; }
+  .tile .ov button { border: 0; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; background: var(--primary); color: var(--on-primary); }
+  .tile .ov .del { background: rgba(255,255,255,.14); color: #fff; }
+  .tile .ov .del.sure { background: var(--err-bg); color: var(--err-on); }
+  @media (hover: none) { .tile .ov { opacity: 1; } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-image" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 00-.48-.41h-3.84a.48.48 0 00-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87a.48.48 0 00.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 00-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 00-1.38-3.56A8.03 8.03 0 0118.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.99 7.99 0 015.08 16zm2.95-8H5.08a7.99 7.99 0 014.33-3.56A15.65 15.65 0 008.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 01-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></symbol>
+</svg>
+
+<header>
+  <div class="titles">
+    <div class="brand">Local Dream <span class="spark">✨</span> · <span data-i="desktop"></span> <small data-i="unofficial"></small></div>
+    <h1 data-i="title"></h1>
+    <div class="sub" data-i="subtitle"></div>
+    <div class="status" id="status"></div>
+  </div>
+  <label class="lang" title="Language"><svg><use href="#i-globe"/></svg>
+    <select id="lang">
+      <option value="en">English</option><option value="pt">Português</option><option value="es">Español</option>
+      <option value="zh">简体中文</option><option value="ja">日本語</option>
+    </select>
+  </label>
+  <button type="button" class="txtbtn" id="quit" hidden data-i="quit"></button>
+</header>
+
+<main>
+  <form class="card" id="f" novalidate>
+    <div class="lbl" style="margin-top:0"><span class="grow" data-i="device_lbl"></span><button type="button" class="tip" data-tip="tip_device" aria-label="?">?</button></div>
+    <select class="model" id="device" aria-label="Device"></select>
+    <div id="phoneactions" class="mdesc"></div>
+
+    <div class="lbl"><span class="grow" data-i="model_lbl"></span><button type="button" class="txtbtn" id="modelrefresh" data-i="refresh_models"></button><button type="button" class="tip" data-tip="tip_model" aria-label="?">?</button></div>
+    <select class="model" id="model" aria-label="Model"></select>
+    <div class="mdesc" id="mdesc"></div>
+    <div class="memrow" id="memrow" hidden><span id="memory" role="status" aria-live="polite"></span><button type="button" class="txtbtn" id="memrefresh" aria-label="Refresh">↻</button></div>
+
+    <div class="lbl"><span class="grow"><span data-i="prompt"></span>&nbsp; <span id="tok"></span></span><button type="button" class="tip" data-tip="tip_prompt" aria-label="?">?</button></div>
+    <fieldset class="field"><legend data-i="prompt_legend"></legend>
+      <textarea id="prompt" required rows="3">RAW photo, portrait of a 30 year old woman, natural window light, 85mm, film grain, detailed skin</textarea>
+    </fieldset>
+    <p class="hint" id="referencehint" data-i="edit_hint" hidden></p>
+
+    <div class="lbl"><span class="grow" data-i="format"></span><button type="button" class="tip" data-tip="tip_format" aria-label="?">?</button></div>
+    <div class="seg" id="sizes"></div>
+    <div id="customsize" class="pairf" hidden>
+      <label><span data-i="width"></span><input id="width" type="number" min="512" max="2048" step="64"></label>
+      <label><span data-i="height"></span><input id="height" type="number" min="512" max="2048" step="64"></label>
+    </div>
+
+    <label id="refmodewrap" class="pairf" hidden><span data-i="edit_mode"></span>
+      <select id="refmode" class="model" aria-controls="singleimage referenceedit">
+        <option value="image" data-i="edit_img2img"></option>
+        <option value="references" data-i="edit_references"></option>
+      </select>
+    </label>
+    <div id="referenceedit" hidden>
+      <p class="hint" id="referencelimit"></p>
+      <input type="file" id="referencefiles" accept="image/png,image/jpeg,image/webp" multiple hidden>
+      <button type="button" id="addreferences" class="refpick" data-i="edit_add" aria-describedby="referencelimit"></button>
+      <ol id="referencelist"></ol>
+    </div>
+    <p class="hint" id="referenceerror" role="status" aria-live="polite"></p>
+    <div id="singleimage">
+    <div class="lbl"><span class="grow" data-i="ref_title"></span><button type="button" class="tip" data-tip="tip_ref" aria-label="?">?</button></div>
+    <input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden>
+    <button type="button" class="refpick" id="pick"><svg><use href="#i-image"/></svg><span><span data-i="ref_pick"></span></span></button>
+    <button type="button" class="txtbtn" id="pastebtn" data-i="paste_btn"></button> <span class="hint" id="pastenow" data-i="paste_now" hidden></span>
+    <div class="ref" id="refbox" hidden>
+      <img id="refimg" alt="">
+      <div class="grow">
+        <div class="lbl" style="margin:0 0 4px"><span class="grow" data-i="denoise"></span><b id="strengthv"></b><button type="button" class="tip" data-tip="tip_denoise" aria-label="?">?</button></div>
+        <input type="range" id="strength" min="0" max="1" step="0.05" value="0.7">
+      </div>
+      <button type="button" class="txtbtn" id="clearref" data-i="remove"></button>
+    </div>
+
+    <div id="masktool" hidden>
+      <button type="button" class="txtbtn" id="paintmask" data-i="mask_paint" aria-pressed="false" aria-controls="maskeditor"></button>
+      <div id="maskeditor" hidden>
+        <p class="hint" id="maskhint" data-i="mask_hint"></p>
+        <p class="hint" id="maskempty" data-i="mask_empty" role="status" hidden></p>
+        <label class="lbl" for="brushsize"><span class="grow" data-i="mask_size"></span><output id="brushsizev" for="brushsize">48 px</output></label>
+        <input type="range" id="brushsize" min="1" max="256" step="1" value="48">
+        <div class="masktools">
+          <button type="button" class="txtbtn" id="maskbrush" data-i="mask_brush" aria-pressed="true"></button>
+          <button type="button" class="txtbtn" id="maskeraser" data-i="mask_eraser" aria-pressed="false"></button>
+          <button type="button" class="txtbtn" id="maskclear" data-i="mask_clear"></button>
+          <button type="button" class="txtbtn" id="maskinvert" data-i="mask_invert"></button>
+          <button type="button" class="txtbtn" id="maskundo" data-i="mask_undo" disabled></button>
+        </div>
+        <div class="maskstage">
+          <canvas id="maskbase" aria-hidden="true"></canvas>
+          <canvas id="maskcanvas" role="img" aria-describedby="maskhint"></canvas>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <details id="adv">
+      <summary><svg><use href="#i-gear"/></svg><span data-i="advanced"></span></summary>
+      <div class="lbl"><span class="grow" data-i="negative"></span><button type="button" class="tip" data-tip="tip_negative" aria-label="?">?</button></div>
+      <fieldset class="field"><legend data-i="negative"></legend>
+        <textarea id="neg" rows="2" style="min-height:70px"></textarea>
+      </fieldset>
+      <div class="lbl"><span class="grow" data-i="steps"></span><b id="stepsv"></b><button type="button" class="tip" data-tip="tip_steps" aria-label="?">?</button></div>
+      <input type="range" id="steps" min="1" max="50" step="1" value="20">
+      <div class="lbl"><span class="grow" data-i="cfg"></span><b id="cfgv"></b><button type="button" class="tip" data-tip="tip_cfg" aria-label="?">?</button></div>
+      <input type="range" id="cfg" min="1" max="30" step="0.5" value="7">
+      <div class="lbl"><span class="grow" data-i="seed"></span><button type="button" class="tip" data-tip="tip_seed" aria-label="?">?</button></div>
+      <div class="seedrow"><input class="seed" id="seed" inputmode="numeric" autocomplete="off"><button type="button" class="btn small ghost" id="dice" data-i="random"></button></div>
+      <label class="lbl" for="scheduler" data-i="scheduler"></label>
+      <input class="seed" id="scheduler" type="text" autocomplete="off">
+    </details>
+
+    <button class="btn" id="go" data-i="generate"></button>
+    <p class="hint" id="appwarnings" role="status" aria-live="polite" style="white-space:pre-line" hidden></p>
+    <div class="under"><span class="hint" id="est"></span><button type="button" class="txtbtn" id="restore" data-i="restore"></button></div>
+  </form>
+
+  <section>
+    <div class="stage" id="stage"></div>
+    <h2 class="hist" data-i="history"></h2>
+    <div class="grid" id="grid"></div>
+    <p class="hint" id="histempty" data-i="hist_empty" hidden></p>
+  </section>
+</main>
+
+<script src="/vendor/qrcode.js"></script>
+<script>
+const I18N = {
+  en: {
+    unofficial: "unofficial",
+    c_scan: "Scan with your phone's camera", c_recommended: "recommended",
+    c_scan_hint: "Open the phone's camera, scan the QR code and tap Yes. Keep both devices on the same Wi-Fi.",
+    c_searching: "Looking for your paired phone…", c_none: "No paired phone found. You can still enter its IP address below.",
+    c_discovery_failed: "Could not find phones. Try again or enter the IP address below.", c_paired: "Phone paired successfully.",
+    c_qr_label: "QR code to pair this computer", not_paired: "This computer is not paired. Scan its QR code with the phone and tap Yes.",
+    mem_line: (a, n) => `Phone RAM: ${a} GB free · this model is estimated to need about ${n} GB`, mem_unknown: (n) => `This model is estimated to need about ${n} GB of RAM (free RAM is shown when the phone is connected with adb)`,
+    paste_btn: "Paste", paste_now: "Now press Ctrl+V", 
+    low_memory: (x, y) => `The phone has ${x} GB free; this model is estimated to need about ${y} GB. Close other apps on the phone first.`,
+    title: "Images made on your phone", subtitle: "Generated on your phone · delivered to this PC", prompt: "Image Generation Prompt",
+    format: "Format", square: "Square", portrait: "Portrait",
+    landscape: "Landscape", ref_title: "Reference image (img2img, optional)", ref_pick: "Choose an image",
+    remove: "Remove", denoise: "How much to change", advanced: "Advanced",
+    mask_paint: "Paint a mask", mask_hint: "Draw over the area to repaint. White changes; black stays. The preview uses the selected canvas size; changing size clears the mask.",
+    mask_size: "Brush size", mask_brush: "Brush", mask_eraser: "Eraser", mask_clear: "Clear mask", mask_invert: "Invert mask", mask_undo: "Undo", mask_canvas: "Repaint mask over the source image",
+    negative: "Negative Prompt", steps: "Steps", cfg: "CFG Scale",
+    seed: "Random Seed (Optional)", generate: "Generate", no_results: "No results yet",
+    create_first: "Create an image first~", history: "History", hist_empty: "Nothing here yet.",
+    seconds: (x) => `${x} s on the phone`,
+    seed_lbl: "seed", download: "Download", reuse: "Use these settings",
+    busy: "The phone is busy, try again in a moment.", empty_prompt: "Write a prompt first.", offline: "The local server stopped. Open “Local Dream Desktop” again.",
+    failed: "Generation failed", no_adb: "ADB is unavailable. Install Android Platform Tools for USB or wireless debugging; Wi-Fi by IP works without ADB.", imp: "Import",
+    del: "Delete", del_sure: "Delete?", c_title: "Connect your phone",
+    c_sub: "Set up once per phone. After that, start host mode on the phone and this PC reconnects.", c_usb: "With a USB cable", c_easiest: "easiest",
+    c_dev: "On the phone, turn on Developer options: Settings → About phone → tap Build number 7 times (Xiaomi: OS version).", c_usb2: "Settings → Developer options → turn on USB debugging.", c_usb3: "Plug the phone into this PC and tap Allow on the phone.",
+    c_usb_auto: "This PC adopts authorized USB phones automatically. Keep the cable plugged in for USB generation.", c_allow: "Phone plugged in: tap Allow on the phone screen (tick “Always allow”).", c_wifi: "Same Wi-Fi by IP",
+    c_wifi2: "Developer options → Wireless debugging → Pair device with pairing code.", c_wifi3: "Type here what the phone shows:", c_addr: "IP address & port",
+    c_code: "Wi-Fi pairing code", c_pair: "Pair", c_before: "Connected this phone before?",
+    c_find: "Find it", phone_off: "Phone not connected", pair_failed: "Pairing failed. Check the current pairing code and try again.",
+    pair_input: "Enter the pairing address (for example 192.0.2.50:37123) and the six-digit code.", device_lbl: "Device", tip_device: "Choose a ready phone. Unavailable phones are listed with the reason. Use + Add a phone to connect another one.",
+    model_lbl: "Model", refresh_models: "Refresh", prompt_legend: "What you want to see", random: "Random",
+    restore: "Restore defaults", paste_hint: "or paste one with Ctrl+V", pasted: "Pasted image",
+    no_models: "No model on the phone yet. Download one in Local Dream on the phone.", prog_title: "Making your image", prog_connect: "Connecting",
+    elapsed: "elapsed", left: (x) => `about ${x} left`, st_connect: "Connect to the phone",
+    st_load: "Load the model", st_load_d: "only when the model or the size changes",
+    st_generate: "Generate", st_save: "Save to this PC", step_n: (s, t, r) => `step ${s} of ${t}` + (r ? ` · ${r} s per step` : ""),
+    est: (x, p) => `about ${x} on ${p}`, add_phone: "Add a phone", tip_model: "The model is the “brain” that draws. Realistic models make photos, anime models make drawings. Only models already downloaded in Local Dream on the phone show up here.",
+    tip_prompt: "Describe what you want to see: who or what, where, the light, the kind of camera. Commas separate ideas. The token counter shows the loaded model's limit, when it has one.", tip_format: "1024×1024 has 4× the pixels of 512×512 and takes several times longer.", tip_ref: "Start from a picture instead of from noise: the result keeps its layout and colours. Choose a file or paste one with Ctrl+V.",
+    tip_denoise: "How far it may move away from the reference. Low (0.3) keeps the picture and touches it up; high (0.8) keeps only the general idea.", tip_negative: "What you do NOT want in the image, such as blur, extra fingers, text or a cartoon look.", tip_steps: "Start from the model's default; turbo and DiT models use few steps and a CFG near 1.",
+    tip_cfg: "Start from the model's default; turbo and DiT models use few steps and a CFG near 1.", tip_seed: "The random starting point. The same seed with the same settings gives the same image; leave it empty to get a new one every time.", ready: "Ready",
+    width: "Width", height: "Height", scheduler: "Scheduler",
+    open_host: "Open host mode for me", switch_usb: "Switch to USB", switch_lan: "Switch to Wi-Fi",
+    stop_model: "Stop / unload model", remove_phone: "Remove phone", remove_confirm: "Remove this phone from this PC?",
+    st_stop: "Unload the model", c_host: "Phone IP address", c_add: "Connect",
+    c_host_path: "On the phone, open Local Dream > More > Device link > Enter host mode. The phone shows its address.", c_wireless: "Wireless debugging pairing (optional)", c_wireless_hint: "Only needed for “Open host mode for me”. Generation over Wi-Fi uses the phone's host mode directly.",
+    c_connect_addr: "IP address & Port (connect, optional)", usb_unplugged: "USB cable disconnected. Plug the phone into this PC.", usb_unauthorized: "USB debugging not authorized. Tap Allow on the phone.",
+    unreachable: "Phone unreachable. Check its address and Wi-Fi connection.", no_host_mode: "Host mode is off. Open Local Dream > More > Device link > Enter host mode.", phone_locked: "Unlock the phone, then try again.",
+    host_mode_manual: "Open Local Dream > More > Device link > Enter host mode on the phone, then try again.", model_missing: "This model is no longer on the phone. Choose another model.", bad_size: "Choose a supported size. DiT dimensions must be 512–2048 in steps of 64.",
+    bad_param: "Check the generation settings and try again.", img2img_disabled: "This phone does not support reference images in its current configuration.", pair_connect_port: "Enter IP address & Port from the Wireless debugging screen in the optional connect field.",
+    bad_image: "The image data is invalid. Choose another reference or try again.", stream_broken: "The phone stopped sending the image. Check the connection and try again.", save_failed: "Could not save the image on this PC. Check available space and permissions.",
+    timeout: "The phone did not respond in time. Check the connection and try again.", too_large: "The request is too large. Use a smaller reference image.", bad_host: "Enter a valid phone IP address or hostname.",
+    app_closed: "Local Dream closed on the phone, often because it ran out of memory. Close other apps on the phone, open host mode again and retry.", desktop: "Desktop", load_failed: "The model failed to load. Check the model on the phone or choose another one.",
+  },
+  pt: {
+    unofficial: "não oficial",
+    c_scan: "Escaneie com a câmera do celular", c_recommended: "recomendado",
+    c_scan_hint: "Abra a câmera do celular, escaneie o QR code e toque em Sim. Mantenha os dois dispositivos no mesmo Wi-Fi.",
+    c_searching: "Procurando seu celular pareado…", c_none: "Nenhum celular pareado encontrado. Você ainda pode digitar o endereço IP abaixo.",
+    c_discovery_failed: "Não foi possível encontrar os celulares. Tente novamente ou digite o endereço IP abaixo.", c_paired: "Celular pareado com sucesso.",
+    c_qr_label: "QR code para parear este computador", not_paired: "Este computador não está pareado. Escaneie o QR code com o celular e toque em Sim.",
+    mem_line: (a, n) => `RAM do celular: ${a} GB livres · estima-se que este modelo precise de cerca de ${n} GB`, mem_unknown: (n) => `Estima-se que este modelo precise de cerca de ${n} GB de RAM (a RAM livre aparece quando o celular está conectado pelo adb)`,
+    paste_btn: "Colar", paste_now: "Agora aperte Ctrl+V", 
+    low_memory: (x, y) => `O celular tem ${x} GB livres; estima-se que este modelo precise de cerca de ${y} GB. Feche outros aplicativos no celular primeiro.`,
+    title: "Imagens feitas no seu celular", subtitle: "Geradas no seu celular · entregues neste PC", prompt: "Prompt de geração",
+    format: "Formato", square: "Quadrado", portrait: "Retrato",
+    landscape: "Paisagem", ref_title: "Imagem de referência (img2img, opcional)", ref_pick: "Escolher uma imagem",
+    remove: "Remover", denoise: "Quanto mudar", advanced: "Avançado",
+    mask_paint: "Pintar uma máscara", mask_hint: "Pinte a área que deseja refazer. Branco muda; preto preserva. A prévia usa o tamanho de tela escolhido; mudar o tamanho limpa a máscara.",
+    mask_size: "Tamanho do pincel", mask_brush: "Pincel", mask_eraser: "Borracha", mask_clear: "Limpar máscara", mask_invert: "Inverter máscara", mask_undo: "Desfazer", mask_canvas: "Máscara de pintura sobre a imagem de origem",
+    negative: "Prompt negativo", steps: "Passos", cfg: "Escala CFG",
+    seed: "Semente (opcional)", generate: "Gerar", no_results: "Nenhum resultado ainda",
+    create_first: "Crie uma imagem primeiro~", history: "Histórico", hist_empty: "Nada aqui ainda.",
+    seconds: (x) => `${x} s no celular`,
+    seed_lbl: "semente", download: "Baixar", reuse: "Usar estas configurações",
+    busy: "O celular está ocupado, tente de novo em instantes.", empty_prompt: "Escreva um prompt primeiro.", offline: "O servidor local parou. Abra o “Local Dream Desktop” de novo.",
+    failed: "A geração falhou", no_adb: "ADB indisponível. Instale Android Platform Tools para USB ou depuração sem fio; Wi-Fi por IP funciona sem ADB.", imp: "Importar",
+    del: "Apagar", del_sure: "Apagar?", c_title: "Conecte seu celular",
+    c_sub: "Configure uma vez por celular. Depois, inicie o modo Host no celular e este PC reconecta.", c_usb: "Com cabo USB", c_easiest: "mais fácil",
+    c_dev: "No celular, ative as Opções do desenvolvedor: Configurações → Sobre o telefone → toque 7 vezes em Número da versão (Xiaomi: Versão do SO).", c_usb2: "Configurações → Opções do desenvolvedor → ative a Depuração USB.", c_usb3: "Ligue o celular neste PC pelo cabo e toque em Permitir no celular.",
+    c_usb_auto: "O PC adota celulares USB autorizados automaticamente. Mantenha o cabo conectado para gerar por USB.", c_allow: "Celular conectado: toque em Permitir na tela do celular (marque “Sempre permitir”).", c_wifi: "Mesmo Wi-Fi por IP",
+    c_wifi2: "Opções do desenvolvedor → Depuração sem fio → Parear o dispositivo com um código de pareamento.", c_wifi3: "Digite aqui o que o celular mostra:", c_addr: "Endereço IP e porta",
+    c_code: "Código de pareamento Wi-Fi", c_pair: "Parear", c_before: "Já conectou este celular antes?",
+    c_find: "Encontrar", phone_off: "Celular desconectado", pair_failed: "O pareamento falhou. Confira o código atual e tente novamente.",
+    pair_input: "Digite o endereço de pareamento (por exemplo 192.0.2.50:37123) e o código de seis dígitos.", device_lbl: "Dispositivo", tip_device: "Escolha um celular pronto. Os indisponíveis aparecem com o motivo. Use + Adicionar celular para conectar outro.",
+    model_lbl: "Modelo", refresh_models: "Atualizar", prompt_legend: "O que você quer ver", random: "Aleatória",
+    restore: "Restaurar padrão", paste_hint: "ou cole uma com Ctrl+V", pasted: "Imagem colada",
+    no_models: "Ainda não há modelo no celular. Baixe um no Local Dream, no celular.", prog_title: "Criando sua imagem", prog_connect: "Conectando",
+    elapsed: "decorrido", left: (x) => `faltam uns ${x}`, st_connect: "Conectar ao celular",
+    st_load: "Carregar o modelo", st_load_d: "só quando o modelo ou o tamanho muda",
+    st_generate: "Gerar", st_save: "Salvar neste PC", step_n: (s, t, r) => `passo ${s} de ${t}` + (r ? ` · ${r} s por passo` : ""),
+    est: (x, p) => `uns ${x} no ${p}`, add_phone: "Adicionar celular", tip_model: "O modelo é o “cérebro” que desenha. Modelos realistas fazem fotos; modelos de anime fazem desenhos. Só aparecem aqui os modelos já baixados no Local Dream do celular.",
+    tip_prompt: "Descreva o que você quer ver: quem ou o quê, onde, a luz, o tipo de câmera. Vírgulas separam as ideias. O contador mostra o limite do modelo carregado, quando há um.", tip_format: "1024×1024 tem 4× os pixels de 512×512 e leva várias vezes mais tempo.", tip_ref: "Começa de uma foto em vez de começar do zero: o resultado mantém a composição e as cores. Escolha um arquivo ou cole uma imagem com Ctrl+V.",
+    tip_denoise: "Quanto ele pode se afastar da referência. Baixo (0,3) mantém a foto e só retoca; alto (0,8) mantém só a ideia geral.", tip_negative: "O que você NÃO quer na imagem, como desfoque, dedos a mais, texto ou cara de desenho.", tip_steps: "Comece pelo padrão do modelo; modelos turbo e DiT usam poucos passos e CFG perto de 1.",
+    tip_cfg: "Comece pelo padrão do modelo; modelos turbo e DiT usam poucos passos e CFG perto de 1.", tip_seed: "O ponto de partida aleatório. A mesma semente com os mesmos ajustes gera a mesma imagem; deixe vazio para vir uma nova a cada vez.", ready: "Pronto",
+    width: "Largura", height: "Altura", scheduler: "Scheduler",
+    open_host: "Abrir modo host para mim", switch_usb: "Trocar para USB", switch_lan: "Trocar para Wi-Fi",
+    stop_model: "Parar / descarregar modelo", remove_phone: "Remover celular", remove_confirm: "Remover este celular deste PC?",
+    st_stop: "Descarregar o modelo", c_host: "Endereço IP do celular", c_add: "Conectar",
+    c_host_path: "No celular, abra Local Dream > More > Device link > Enter host mode. O celular mostra seu endereço.", c_wireless: "Pareamento por depuração sem fio (opcional)", c_wireless_hint: "Só é necessário para “Abrir modo host para mim”. A geração por Wi-Fi usa diretamente o modo host do celular.",
+    c_connect_addr: "Endereço IP e porta (conexão, opcional)", usb_unplugged: "Cabo USB desconectado. Conecte o celular ao PC.", usb_unauthorized: "Depuração USB não autorizada. Toque em Permitir no celular.",
+    unreachable: "Celular inacessível. Confira o endereço e a conexão Wi-Fi.", no_host_mode: "Modo host desligado. Abra Local Dream > More > Device link > Enter host mode.", phone_locked: "Desbloqueie o celular e tente novamente.",
+    host_mode_manual: "Abra Local Dream > More > Device link > Enter host mode no celular e tente novamente.", model_missing: "O modelo não está mais no celular. Escolha outro modelo.", bad_size: "Escolha um tamanho compatível. No DiT, cada dimensão deve ser de 512 a 2048, em passos de 64.",
+    bad_param: "Confira os ajustes de geração e tente novamente.", img2img_disabled: "Este celular não aceita imagens de referência na configuração atual.", pair_connect_port: "Digite o endereço IP e a porta da tela de Depuração sem fio no campo opcional de conexão.",
+    bad_image: "Dados de imagem inválidos. Escolha outra referência ou tente novamente.", stream_broken: "O celular parou de enviar a imagem. Confira a conexão e tente novamente.", save_failed: "Não foi possível salvar a imagem no PC. Confira o espaço disponível e as permissões.",
+    timeout: "O celular não respondeu a tempo. Confira a conexão e tente novamente.", too_large: "A solicitação é grande demais. Use uma referência menor.", bad_host: "Digite um endereço IP ou nome de host válido do celular.",
+    app_closed: "O Local Dream fechou no celular, frequentemente por falta de memória. Feche outros apps no celular, abra o modo Host de novo e tente outra vez.", desktop: "Desktop", load_failed: "Não foi possível carregar o modelo. Confira o modelo no celular ou escolha outro.",
+  },
+  es: {
+    unofficial: "no oficial",
+    c_scan: "Escanea con la cámara del móvil", c_recommended: "recomendado",
+    c_scan_hint: "Abre la cámara del móvil, escanea el código QR y toca Sí. Mantén ambos dispositivos en la misma red Wi-Fi.",
+    c_searching: "Buscando tu móvil vinculado…", c_none: "No se ha encontrado ningún móvil vinculado. Puedes introducir su dirección IP abajo.",
+    c_discovery_failed: "No se han podido encontrar los móviles. Vuelve a intentarlo o introduce la dirección IP abajo.", c_paired: "Móvil vinculado correctamente.",
+    c_qr_label: "Código QR para vincular este ordenador", not_paired: "Este ordenador no está vinculado. Escanea su código QR con el móvil y toca Sí.",
+    mem_line: (a, n) => `RAM del móvil: ${a} GB libres · se estima que este modelo necesita unos ${n} GB`, mem_unknown: (n) => `Se estima que este modelo necesita unos ${n} GB de RAM (la RAM libre aparece cuando el móvil está conectado por adb)`,
+    paste_btn: "Pegar", paste_now: "Ahora pulsa Ctrl+V", 
+    low_memory: (x, y) => `El móvil tiene ${x} GB libres; se estima que este modelo necesita unos ${y} GB. Cierra primero otras aplicaciones en el móvil.`,
+    title: "Imágenes hechas en tu móvil", subtitle: "Generadas en tu móvil · entregadas en este PC", prompt: "Prompt de generación",
+    format: "Formato", square: "Cuadrado", portrait: "Retrato",
+    landscape: "Paisaje", ref_title: "Imagen de referencia (img2img, opcional)", ref_pick: "Elegir una imagen",
+    remove: "Quitar", denoise: "Cuánto cambiar", advanced: "Avanzado",
+    mask_paint: "Pintar una máscara", mask_hint: "Pinta la zona que quieras regenerar. El blanco cambia; el negro conserva. La vista previa usa el tamaño de lienzo elegido; cambiar el tamaño borra la máscara.",
+    mask_size: "Tamaño del pincel", mask_brush: "Pincel", mask_eraser: "Borrador", mask_clear: "Borrar máscara", mask_invert: "Invertir máscara", mask_undo: "Deshacer", mask_canvas: "Máscara de pintura sobre la imagen original",
+    negative: "Prompt negativo", steps: "Pasos", cfg: "Escala CFG",
+    seed: "Semilla (opcional)", generate: "Generar", no_results: "Aún no hay resultados",
+    create_first: "Crea una imagen primero~", history: "Historial", hist_empty: "Todavía no hay nada.",
+    seconds: (x) => `${x} s en el móvil`,
+    seed_lbl: "semilla", download: "Descargar", reuse: "Usar estos ajustes",
+    busy: "El móvil está ocupado, inténtalo de nuevo en un momento.", empty_prompt: "Escribe un prompt primero.", offline: "El servidor local se detuvo. Abre “Local Dream Desktop” de nuevo.",
+    failed: "La generación falló", no_adb: "ADB no está disponible. Instala Android Platform Tools para USB o depuración inalámbrica; Wi-Fi por IP funciona sin ADB.", imp: "Importar",
+    del: "Borrar", del_sure: "¿Borrar?", c_title: "Conecta tu móvil",
+    c_sub: "Configura una vez por móvil. Después, inicia el modo host en el móvil y este PC se reconecta.", c_usb: "Con cable USB", c_easiest: "lo más fácil",
+    c_dev: "En el móvil, activa las Opciones de desarrollador: Ajustes → Información del teléfono → toca 7 veces Número de compilación (Xiaomi: Versión del SO).", c_usb2: "Ajustes → Opciones de desarrollador → activa la Depuración USB.", c_usb3: "Conecta el móvil a este PC y toca Permitir en el móvil.",
+    c_usb_auto: "El PC incorpora los móviles USB autorizados automáticamente. Mantén el cable conectado para generar por USB.", c_allow: "Móvil conectado: toca Permitir en la pantalla del móvil (marca “Permitir siempre”).", c_wifi: "Misma Wi-Fi por IP",
+    c_wifi2: "Opciones de desarrollador → Depuración inalámbrica → Vincular dispositivo con código de vinculación.", c_wifi3: "Escribe aquí lo que muestra el móvil:", c_addr: "Dirección IP y puerto",
+    c_code: "Código de vinculación Wi-Fi", c_pair: "Vincular", c_before: "¿Ya conectaste este móvil antes?",
+    c_find: "Buscarlo", phone_off: "Móvil sin conectar", pair_failed: "La vinculación falló. Comprueba el código actual y vuelve a intentarlo.",
+    pair_input: "Introduce la dirección de vinculación (por ejemplo 192.0.2.50:37123) y el código de seis dígitos.", device_lbl: "Dispositivo", tip_device: "Elige un móvil listo. Los no disponibles muestran el motivo. Usa + Añadir móvil para conectar otro.",
+    model_lbl: "Modelo", refresh_models: "Actualizar", prompt_legend: "Lo que quieres ver", random: "Aleatoria",
+    restore: "Restaurar valores", paste_hint: "o pega una con Ctrl+V", pasted: "Imagen pegada",
+    no_models: "Aún no hay modelo en el móvil. Descarga uno en Local Dream, en el móvil.", prog_title: "Creando tu imagen", prog_connect: "Conectando",
+    elapsed: "transcurrido", left: (x) => `quedan unos ${x}`, st_connect: "Conectar con el móvil",
+    st_load: "Cargar el modelo", st_load_d: "solo cuando cambia el modelo o el tamaño",
+    st_generate: "Generar", st_save: "Guardar en este PC", step_n: (s, t, r) => `paso ${s} de ${t}` + (r ? ` · ${r} s por paso` : ""),
+    est: (x, p) => `unos ${x} en ${p}`, add_phone: "Añadir móvil", tip_model: "El modelo es el “cerebro” que dibuja. Los realistas hacen fotos; los de anime hacen dibujos. Aquí solo aparecen los modelos ya descargados en Local Dream en el móvil.",
+    tip_prompt: "Describe lo que quieres ver: quién o qué, dónde, la luz, el tipo de cámara. Las comas separan ideas. El contador muestra el límite del modelo cargado, cuando lo tiene.", tip_format: "1024×1024 tiene 4× los píxeles de 512×512 y tarda varias veces más.", tip_ref: "Empieza desde una foto en lugar de desde cero: el resultado conserva la composición y los colores. Elige un archivo o pega una imagen con Ctrl+V.",
+    tip_denoise: "Cuánto puede alejarse de la referencia. Bajo (0,3) conserva la foto y la retoca; alto (0,8) conserva solo la idea general.", tip_negative: "Lo que NO quieres en la imagen, como desenfoque, dedos de más, texto o aspecto de dibujo.", tip_steps: "Empieza con el valor predeterminado del modelo; los modelos turbo y DiT usan pocos pasos y un CFG cercano a 1.",
+    tip_cfg: "Empieza con el valor predeterminado del modelo; los modelos turbo y DiT usan pocos pasos y un CFG cercano a 1.", tip_seed: "El punto de partida aleatorio. La misma semilla con los mismos ajustes da la misma imagen; déjala vacía para obtener una nueva cada vez.", ready: "Listo",
+    width: "Ancho", height: "Alto", scheduler: "Planificador",
+    open_host: "Abrir el modo host por mí", switch_usb: "Cambiar a USB", switch_lan: "Cambiar a Wi-Fi",
+    stop_model: "Detener / descargar modelo", remove_phone: "Quitar móvil", remove_confirm: "¿Quitar este móvil de este PC?",
+    st_stop: "Descargar el modelo", c_host: "Dirección IP del móvil", c_add: "Conectar",
+    c_host_path: "En el móvil, abre Local Dream > More > Device link > Enter host mode. El móvil muestra su dirección.", c_wireless: "Vinculación por depuración inalámbrica (opcional)", c_wireless_hint: "Solo se necesita para “Abrir el modo host por mí”. La generación por Wi-Fi usa directamente el modo host del móvil.",
+    c_connect_addr: "Dirección IP y puerto (conexión, opcional)", usb_unplugged: "Cable USB desconectado. Conecta el móvil al PC.", usb_unauthorized: "Depuración USB no autorizada. Toca Permitir en el móvil.",
+    unreachable: "No se puede acceder al móvil. Comprueba su dirección y la conexión Wi-Fi.", no_host_mode: "El modo host está desactivado. Abre Local Dream > More > Device link > Enter host mode.", phone_locked: "Desbloquea el móvil y vuelve a intentarlo.",
+    host_mode_manual: "Abre Local Dream > More > Device link > Enter host mode en el móvil y vuelve a intentarlo.", model_missing: "El modelo ya no está en el móvil. Elige otro.", bad_size: "Elige un tamaño compatible. En DiT, las dimensiones deben ser de 512 a 2048, en incrementos de 64.",
+    bad_param: "Comprueba los ajustes de generación y vuelve a intentarlo.", img2img_disabled: "Este móvil no admite imágenes de referencia con la configuración actual.", pair_connect_port: "Introduce la dirección IP y el puerto de la pantalla de Depuración inalámbrica en el campo opcional de conexión.",
+    bad_image: "Los datos de imagen no son válidos. Elige otra referencia o vuelve a intentarlo.", stream_broken: "El móvil dejó de enviar la imagen. Comprueba la conexión y vuelve a intentarlo.", save_failed: "No se pudo guardar la imagen en el PC. Comprueba el espacio y los permisos.",
+    timeout: "El móvil no respondió a tiempo. Comprueba la conexión y vuelve a intentarlo.", too_large: "La solicitud es demasiado grande. Usa una referencia más pequeña.", bad_host: "Introduce una dirección IP o un nombre de host válido del móvil.",
+    app_closed: "Local Dream se cerró en el móvil, a menudo por falta de memoria. Cierra otras apps en el móvil, vuelve a abrir el modo host y reinténtalo.", desktop: "Desktop", load_failed: "No se pudo cargar el modelo. Comprueba el modelo en el móvil o elige otro.",
+  },
+  zh: {
+    unofficial: "非官方",
+    c_scan: "使用手机相机扫描", c_recommended: "推荐",
+    c_scan_hint: "打开手机相机，扫描二维码并点“是”。请让两个设备连接同一 Wi-Fi。",
+    c_searching: "正在查找已配对的手机…", c_none: "未找到已配对的手机。您仍可在下方输入 IP 地址。",
+    c_discovery_failed: "无法找到手机。请重试或在下方输入 IP 地址。", c_paired: "手机配对成功。",
+    c_qr_label: "用于配对此电脑的二维码", not_paired: "此电脑尚未配对。请用手机扫描二维码并点“是”。",
+    mem_line: (a, n) => `手机可用内存：${a} GB · 预计此模型需要约 ${n} GB`, mem_unknown: (n) => `预计此模型需要约 ${n} GB 内存（通过 adb 连接手机后会显示可用内存）`,
+    paste_btn: "粘贴", paste_now: "现在按 Ctrl+V", 
+    low_memory: (x, y) => `手机可用内存为 ${x} GB；预计此模型需要约 ${y} GB。请先关闭手机上的其他应用。`,
+    title: "在你的手机上生成图像", subtitle: "在你的手机上生成 · 直接传回这台电脑", prompt: "图像生成提示词",
+    format: "画幅", square: "方形", portrait: "竖图",
+    landscape: "横图", ref_title: "参考图像（图生图，可选）", ref_pick: "选择图像",
+    remove: "移除", denoise: "变化程度", advanced: "高级",
+    mask_paint: "绘制蒙版", mask_hint: "涂抹需要重绘的区域。白色重绘，黑色保留。预览使用所选画布尺寸；更改尺寸会清空蒙版。",
+    mask_size: "画笔大小", mask_brush: "画笔", mask_eraser: "橡皮擦", mask_clear: "清空蒙版", mask_invert: "反转蒙版", mask_undo: "撤销", mask_canvas: "原图上的重绘蒙版",
+    negative: "负面提示词", steps: "步数", cfg: "CFG 强度",
+    seed: "随机种子（可选）", generate: "生成", no_results: "暂无结果",
+    create_first: "先生成一张图片吧~", history: "历史", hist_empty: "这里还没有内容。",
+    seconds: (x) => `手机耗时 ${x} 秒`,
+    seed_lbl: "种子", download: "下载", reuse: "使用这些设置",
+    busy: "手机正忙，请稍后再试。", empty_prompt: "请先输入提示词。", offline: "本地服务已停止，请重新打开 “Local Dream Desktop”。",
+    failed: "生成失败", no_adb: "ADB 不可用。USB 或无线调试需要安装 Android Platform Tools；通过 IP 连接 Wi-Fi 无需 ADB。", imp: "导入",
+    del: "删除", del_sure: "确认删除？", c_title: "连接你的手机",
+    c_sub: "每部手机设置一次。之后，在手机上启动受控模式，此电脑就会重新连接。", c_usb: "用 USB 数据线", c_easiest: "最简单",
+    c_dev: "在手机上打开开发者选项：设置 → 关于手机 → 连续点按“版本号”7 次（小米：OS 版本）。", c_usb2: "设置 → 开发者选项 → 打开 USB 调试。", c_usb3: "用数据线把手机连到这台电脑，并在手机上点“允许”。",
+    c_usb_auto: "电脑会自动添加已授权的 USB 手机。通过 USB 生成时请保持数据线连接。", c_allow: "手机已插上：请在手机屏幕上点“允许”（勾选“始终允许”）。", c_wifi: "同一 Wi-Fi，通过 IP 连接",
+    c_wifi2: "开发者选项 → 无线调试 → 使用配对码配对设备。", c_wifi3: "在这里输入手机上显示的内容：", c_addr: "IP 地址和端口",
+    c_code: "WLAN 配对码", c_pair: "配对", c_before: "以前连接过这部手机？",
+    c_find: "查找", phone_off: "手机未连接", pair_failed: "配对失败。请检查当前配对码后重试。",
+    pair_input: "请输入配对地址（例如 192.0.2.50:37123）和六位配对码。", device_lbl: "设备", tip_device: "请选择已就绪的手机。不可用的手机会显示原因。点击“+ 添加手机”可连接其他手机。",
+    model_lbl: "模型", refresh_models: "刷新", prompt_legend: "你想看到的内容", random: "随机",
+    restore: "恢复默认", paste_hint: "或用 Ctrl+V 粘贴图片", pasted: "粘贴的图片",
+    no_models: "手机上还没有模型。请先在手机的 Local Dream 中下载一个。", prog_title: "正在生成图像", prog_connect: "正在连接",
+    elapsed: "已用时", left: (x) => `大约还剩 ${x}`, st_connect: "连接手机",
+    st_load: "加载模型", st_load_d: "仅在模型或尺寸变化时",
+    st_generate: "生成", st_save: "保存到这台电脑", step_n: (s, t, r) => `第 ${s}/${t} 步` + (r ? ` · 每步 ${r} 秒` : ""),
+    est: (x, p) => `在 ${p} 上约 ${x}`, add_phone: "添加手机", tip_model: "模型就是负责“画画”的大脑。写实模型生成照片，动漫模型生成插画。这里只显示手机上 Local Dream 已下载的模型。",
+    tip_prompt: "描述你想看到的内容：主体、地点、光线、相机类型。用逗号分隔不同的想法。如果已加载的模型有 token 上限，计数器会显示该上限。", tip_format: "1024×1024 的像素数是 512×512 的 4 倍，耗时会增加到数倍。", tip_ref: "从一张图片开始，而不是从噪点开始：结果会保留它的构图和颜色。可以选择文件，或用 Ctrl+V 粘贴图片。",
+    tip_denoise: "允许偏离参考图的程度。低（0.3）保留原图，只做修饰；高（0.8）只保留大致构思。", tip_negative: "你不想在图中出现的内容，例如模糊、多余的手指、文字或卡通感。", tip_steps: "请从模型的默认值开始；turbo 和 DiT 模型使用较少步数和接近 1 的 CFG。",
+    tip_cfg: "请从模型的默认值开始；turbo 和 DiT 模型使用较少步数和接近 1 的 CFG。", tip_seed: "随机起点。相同的种子加相同的设置会得到相同的图像；留空则每次都生成新图。", ready: "就绪",
+    width: "宽度", height: "高度", scheduler: "采样器",
+    open_host: "帮我开启受控模式", switch_usb: "切换至 USB", switch_lan: "切换至 Wi-Fi",
+    stop_model: "停止并卸载模型", remove_phone: "移除手机", remove_confirm: "要从这台电脑移除此手机吗？",
+    st_stop: "卸载模型", c_host: "手机 IP 地址", c_add: "连接",
+    c_host_path: "在手机上打开 Local Dream > 更多 > 设备互联 > 进入受控模式。手机会显示连接地址。", c_wireless: "无线调试配对（可选）", c_wireless_hint: "仅“帮我开启受控模式”需要配对。通过 Wi-Fi 生成可直接使用手机的受控模式。",
+    c_connect_addr: "IP 地址和端口（连接，可选）", usb_unplugged: "USB 数据线已断开。请将手机连接至电脑。", usb_unauthorized: "USB 调试尚未授权。请在手机上点“允许”。",
+    unreachable: "无法连接手机。请检查地址和 Wi-Fi 连接。", no_host_mode: "受控模式未开启。请打开 Local Dream > 更多 > 设备互联 > 进入受控模式。", phone_locked: "请解锁手机后重试。",
+    host_mode_manual: "请在手机上打开 Local Dream > 更多 > 设备互联 > 进入受控模式，然后重试。", model_missing: "手机上已没有此模型。请选择其他模型。", bad_size: "请选择支持的尺寸。DiT 的宽高必须为 512 至 2048，且以 64 为步长。",
+    bad_param: "请检查生成设置后重试。", img2img_disabled: "手机当前配置不支持参考图像。", pair_connect_port: "请在可选的连接字段中输入无线调试页面上的 IP 地址和端口。",
+    bad_image: "图像数据无效。请选择其他参考图或重试。", stream_broken: "手机已停止传输图像。请检查连接后重试。", save_failed: "无法在电脑上保存图像。请检查可用空间和权限。",
+    timeout: "手机响应超时。请检查连接后重试。", too_large: "请求过大。请使用较小的参考图像。", bad_host: "请输入有效的手机 IP 地址或主机名。",
+    app_closed: "手机上的 Local Dream 已关闭，经常是因为内存不足。请关闭手机上的其他应用，重新进入受控模式后再试。", desktop: "桌面版", load_failed: "模型加载失败。请在手机上检查模型或选择其他模型。",
+  },
+  ja: {
+    unofficial: "非公式",
+    c_scan: "スマホのカメラでスキャンします", c_recommended: "おすすめ",
+    c_scan_hint: "スマホのカメラを開き、QR コードを読み取って「はい」をタップしてください。両方の端末を同じ Wi-Fi に接続してください。",
+    c_searching: "ペアリング済みのスマホを探しています…", c_none: "ペアリング済みのスマホが見つかりませんでした。下の欄に IP アドレスを入力して接続することもできます。",
+    c_discovery_failed: "スマホを検出できませんでした。もう一度試すか、下の欄に IP アドレスを入力してください。", c_paired: "スマホとのペアリングが完了しました。",
+    c_qr_label: "このパソコンとペアリングするための QR コードです", not_paired: "このパソコンはまだペアリングされていません。スマホで QR コードを読み取り、「はい」をタップしてください。",
+    mem_line: (a, n) => `スマホの空きメモリ：${a} GB · このモデルには約 ${n} GB が必要と推定されます`, mem_unknown: (n) => `このモデルには約 ${n} GB のメモリが必要と推定されます（adb で接続すると空きメモリが表示されます）`,
+    paste_btn: "貼り付け", paste_now: "Ctrl+V を押してください", 
+    low_memory: (x, y) => `スマホの空きメモリは ${x} GB です。このモデルには約 ${y} GB が必要と推定されます。先にスマホのほかのアプリを閉じてください。`,
+    title: "スマホで生成した画像", subtitle: "スマホで生成 · この PC に届きます", prompt: "画像生成プロンプト",
+    format: "サイズ", square: "正方形", portrait: "縦長",
+    landscape: "横長", ref_title: "参考画像（img2img・任意）", ref_pick: "画像を選択",
+    remove: "削除", denoise: "変化の度合い", advanced: "詳細設定",
+    mask_paint: "マスクを描く", mask_hint: "描き直したい部分を塗ってください。白は変更、黒は保持します。プレビューは選択したキャンバスサイズを使います。サイズを変えるとマスクが消えます。",
+    mask_size: "ブラシのサイズ", mask_brush: "ブラシ", mask_eraser: "消しゴム", mask_clear: "マスクを消去", mask_invert: "マスクを反転", mask_undo: "元に戻す", mask_canvas: "元の画像に重ねた描き直し用マスク",
+    negative: "ネガティブプロンプト", steps: "ステップ数", cfg: "CFG スケール",
+    seed: "ランダムシード（任意）", generate: "生成", no_results: "まだ結果がありません",
+    create_first: "まず画像を作成しましょう〜", history: "履歴", hist_empty: "まだ何もありません。",
+    seconds: (x) => `スマホで ${x} 秒`,
+    seed_lbl: "シード", download: "ダウンロード", reuse: "この設定を使う",
+    busy: "スマホが処理中です。しばらくしてから、もう一度お試しください。", empty_prompt: "先にプロンプトを入力してください。", offline: "ローカルサーバーが停止しました。「Local Dream Desktop」をもう一度開いてください。",
+    failed: "生成に失敗しました", no_adb: "ADB が見つかりません。USB 接続やワイヤレス デバッグには Android Platform Tools が必要です。Wi-Fi での IP 接続は ADB なしで使えます。", imp: "読み込む",
+    del: "削除", del_sure: "削除する？", c_title: "スマホを接続",
+    c_sub: "スマホごとに一度設定してください。その後はスマホでホストモードを開始すると、この PC が再接続します。", c_usb: "USB ケーブルで", c_easiest: "いちばん簡単",
+    c_dev: "スマホで開発者向けオプションをオンにします：設定 → デバイス情報 → ビルド番号を 7 回タップ（Xiaomi の場合は OS バージョン）。", c_usb2: "設定 → 開発者向けオプション → USB デバッグをオンにします。", c_usb3: "スマホをこの PC にケーブルでつなぎ、スマホで「許可」をタップします。",
+    c_usb_auto: "USB デバッグが許可されたスマホは自動で登録されます。USB で生成する間はケーブルを接続したままにしてください。", c_allow: "スマホが接続されています：スマホの画面で「許可」をタップします（「このパソコンからは常に許可する」にチェック）。", c_wifi: "同じ Wi-Fi で IP 接続",
+    c_wifi2: "開発者向けオプション → ワイヤレス デバッグ → ペア設定コードによるデバイスのペア設定。", c_wifi3: "スマホに表示された内容をここに入力：", c_addr: "IP アドレスとポート",
+    c_code: "Wi-Fi ペア設定コード", c_pair: "ペア設定", c_before: "以前このスマホを接続したことがありますか？",
+    c_find: "探す", phone_off: "スマホ未接続", pair_failed: "ペア設定に失敗しました。現在のペア設定コードを確認してから、もう一度お試しください。",
+    pair_input: "ペア設定用のアドレス（例：192.0.2.50:37123）と 6 桁のペア設定コードを入力してください。", device_lbl: "デバイス", tip_device: "準備ができているスマホを選んでください。接続できないスマホには理由が表示されます。「+ スマホを追加」から別のスマホを接続できます。",
+    model_lbl: "モデル", refresh_models: "更新", prompt_legend: "見たいもの", random: "ランダム",
+    restore: "初期設定に戻す", paste_hint: "または Ctrl+V で貼り付け", pasted: "貼り付けた画像",
+    no_models: "スマホにまだモデルがありません。スマホの Local Dream でダウンロードしてください。", prog_title: "画像を作成中", prog_connect: "接続中",
+    elapsed: "経過", left: (x) => `残り約 ${x}`, st_connect: "スマホに接続",
+    st_load: "モデルを読み込む", st_load_d: "モデルまたはサイズが変わったときだけ",
+    st_generate: "生成", st_save: "この PC に保存", step_n: (s, t, r) => `ステップ ${s}/${t}` + (r ? ` · 1 ステップあたり ${r} 秒` : ""),
+    est: (x, p) => `${p} で約 ${x}`, add_phone: "スマホを追加", tip_model: "モデルは絵を描く「頭脳」です。リアル系は写真、アニメ系はイラストを作ります。スマホの Local Dream でダウンロード済みのモデルだけがここに表示されます。",
+    tip_prompt: "見たいものを書いてください。被写体、場所、光、カメラの種類などをカンマで区切ります。読み込んだモデルにトークン数の上限がある場合は、カウンターに表示されます。", tip_format: "1024×1024 の画素数は 512×512 の 4 倍で、処理時間は数倍になります。", tip_ref: "ノイズからではなく画像から始めます。構図と色が引き継がれます。ファイルを選ぶか、Ctrl+V で貼り付けてください。",
+    tip_denoise: "参考画像からどれだけ変えてよいかを決めます。低い（0.3）と画像を保ったまま手直しし、高い（0.8）と大まかなイメージだけを残します。", tip_negative: "画像に入れたくないものを書きます。たとえば、ぼやけ、余分な指、文字、イラスト風の絵柄などです。", tip_steps: "モデルの初期値から始めてください。turbo と DiT モデルは少ないステップ数と 1 に近い CFG を使います。",
+    tip_cfg: "モデルの初期値から始めてください。turbo と DiT モデルは少ないステップ数と 1 に近い CFG を使います。", tip_seed: "ランダムな出発点です。同じシードと同じ設定なら同じ画像になります。空欄にすると毎回新しい画像になります。", ready: "準備完了",
+    width: "幅", height: "高さ", scheduler: "スケジューラー",
+    open_host: "ホストモードを自動で開く", switch_usb: "USB に切り替える", switch_lan: "Wi-Fi に切り替える",
+    stop_model: "停止してモデルを解放", remove_phone: "スマホを削除", remove_confirm: "この PC からスマホの登録を削除しますか？",
+    st_stop: "モデルを解放", c_host: "スマホの IP アドレス", c_add: "接続",
+    c_host_path: "スマホで Local Dream > その他 > デバイス連携 > ホストモードを開始 を開いてください。スマホに接続先のアドレスが表示されます。", c_wireless: "ワイヤレス デバッグのペア設定（任意）", c_wireless_hint: "「ホストモードを自動で開く」を使う場合にのみ必要です。Wi-Fi での生成にはスマホのホストモードを直接使います。",
+    c_connect_addr: "IP アドレスとポート（接続用・任意）", usb_unplugged: "USB ケーブルが外れています。スマホをこの PC に接続してください。", usb_unauthorized: "USB デバッグが許可されていません。スマホで「許可」をタップしてください。",
+    unreachable: "スマホに接続できません。アドレスと Wi-Fi 接続を確認してください。", no_host_mode: "ホストモードがオフです。Local Dream > その他 > デバイス連携 > ホストモードを開始 を開いてください。", phone_locked: "スマホのロックを解除してから、もう一度お試しください。",
+    host_mode_manual: "スマホで Local Dream > その他 > デバイス連携 > ホストモードを開始 を開いてから、もう一度お試しください。", model_missing: "このモデルはスマホにありません。別のモデルを選んでください。", bad_size: "対応するサイズを選んでください。DiT の幅と高さは 512〜2048 の範囲で、64 刻みにしてください。",
+    bad_param: "生成設定を確認してから、もう一度お試しください。", img2img_disabled: "スマホの現在の設定では参考画像を使えません。", pair_connect_port: "ワイヤレス デバッグ画面の「IP アドレスとポート」を、任意の接続用欄に入力してください。",
+    bad_image: "画像データが正しくありません。別の参考画像を選ぶか、もう一度お試しください。", stream_broken: "スマホからの画像転送が途切れました。接続を確認してから、もう一度お試しください。", save_failed: "この PC に画像を保存できませんでした。空き容量とアクセス権限を確認してください。",
+    timeout: "スマホの応答がタイムアウトしました。接続を確認してから、もう一度お試しください。", too_large: "送信するデータが大きすぎます。小さい参考画像を使ってください。", bad_host: "有効なスマホの IP アドレスまたはホスト名を入力してください。",
+    app_closed: "スマホの Local Dream が終了しました。メモリ不足が原因であることがよくあります。スマホのほかのアプリを閉じ、ホストモードをもう一度開始してから、再度お試しください。", desktop: "デスクトップ版", load_failed: "モデルを読み込めませんでした。スマホでモデルを確認するか、別のモデルを選んでください。",
+  },
+};
+
+const DIAG_COPY = {
+  en: {
+    h_recommend_unlock: "Unlock the phone and keep Local Dream open.",
+    a_recommend_unlock: "Unlock the phone",
+    h_recommend_foreground: "Open Local Dream on the phone's screen before big models.",
+    a_recommend_foreground: "Open Local Dream",
+    h_move_to_app_storage: "Local Dream > Settings > Model Storage > App storage (large models can crash when read from the Download folder).",
+    a_move_to_app_storage: "Use app storage",
+    e_public_storage: "The model's folder exists under Download/LocalDream/models.",
+    e_phone_locked: "The phone was locked at job start.",
+    e_app_not_foreground: "Local Dream was not on the phone's screen at job start.",
+    d_models_in_public_storage: "Large models can crash when read from the public Download folder.",
+    d_app_not_foreground: "Local Dream was in the background when this job started.",
+    d_out_of_memory: "The phone ran out of memory while running Local Dream.", d_native_crash: "Local Dream's native engine crashed.", d_host_mode_off: "Local Dream's host mode is no longer available.", d_network: "The connection to the phone was lost or timed out.", d_load_failed: "The phone could not load this model.", d_unknown: "The cause could not be confirmed from the available information.",
+    e_exit: (r, at) => `Android recorded ${r} at ${at}.`, e_memory: (mb) => `${mb} MB of memory available now.`, e_reference: "A reference image needs more memory with this model.", e_adb: "Connect adb for a more precise diagnosis.", e_request: (m, w, h, s) => `${m} · ${w}×${h} · ${s} steps`, e_mask: "A mask was also used.",
+    reason_LOW_MEMORY: "low memory", reason_CRASH: "an app crash", reason_CRASH_NATIVE: "a native crash", reason_ANR: "an unresponsive app", reason_USER_REQUESTED: "the app being closed by the user", reason_SIGNALED: "the process being stopped by a signal", reason_other: "the app exiting",
+    a_retry: "Retry", a_retry_without_reference: "Retry without reference", a_retry_smaller: "Retry at a smaller size", a_close_apps: "Apps to close", a_reopen_host_mode: "Reopen host mode", a_check_wifi: "Check Wi-Fi", a_use_other_model: "Use another model",
+    h_close_apps: "Close these apps on the phone, then retry:", h_no_apps: "Close other apps on the phone, then retry. No app memory list is available.", h_check_wifi: "Check that both devices are on the same Wi-Fi network and the phone's address is correct.", h_use_other_model: "Choose a lighter model in the model selector, then generate again.", mem_reference: "with reference image (estimate)",
+  },
+  pt: {
+    h_recommend_unlock: "Desbloqueie o celular e mantenha o Local Dream aberto.",
+    a_recommend_unlock: "Desbloquear o celular",
+    h_recommend_foreground: "Abra o Local Dream na tela do celular antes de usar modelos grandes.",
+    a_recommend_foreground: "Abrir o Local Dream",
+    h_move_to_app_storage: "Local Dream > Configurações > Armazenamento de modelos > Armazenamento do app (modelos grandes podem falhar ao serem lidos da pasta Download).",
+    a_move_to_app_storage: "Usar armazenamento do app",
+    e_public_storage: "A pasta do modelo existe em Download/LocalDream/models.",
+    e_phone_locked: "O celular estava bloqueado no início da geração.",
+    e_app_not_foreground: "O Local Dream não estava aberto na tela do celular no início da geração.",
+    d_models_in_public_storage: "Modelos grandes podem falhar ao serem lidos da pasta pública Download.",
+    d_app_not_foreground: "O Local Dream estava em segundo plano quando esta geração começou.",
+    d_out_of_memory: "O celular ficou sem memória ao executar o Local Dream.", d_native_crash: "O mecanismo nativo do Local Dream falhou.", d_host_mode_off: "O modo host do Local Dream não está mais disponível.", d_network: "A conexão com o celular caiu ou demorou demais para responder.", d_load_failed: "O celular não conseguiu carregar este modelo.", d_unknown: "Não foi possível confirmar a causa com as informações disponíveis.",
+    e_exit: (r, at) => `O Android registrou ${r} às ${at}.`, e_memory: (mb) => `${mb} MB de memória disponíveis agora.`, e_reference: "Usar uma imagem de referência exige mais memória neste modelo.", e_adb: "Conecte o adb para obter um diagnóstico mais preciso.", e_request: (m, w, h, s) => `${m} · ${w}×${h} · ${s} passos`, e_mask: "Também foi usada uma máscara.",
+    reason_LOW_MEMORY: "falta de memória", reason_CRASH: "uma falha do aplicativo", reason_CRASH_NATIVE: "uma falha nativa", reason_ANR: "falta de resposta do aplicativo", reason_USER_REQUESTED: "o fechamento do aplicativo pelo usuário", reason_SIGNALED: "o encerramento do processo por um sinal", reason_other: "o encerramento do aplicativo",
+    a_retry: "Tentar novamente", a_retry_without_reference: "Tentar sem referência", a_retry_smaller: "Tentar em tamanho menor", a_close_apps: "Apps para fechar", a_reopen_host_mode: "Reabrir modo host", a_check_wifi: "Verificar Wi-Fi", a_use_other_model: "Usar outro modelo",
+    h_close_apps: "Feche estes apps no celular e tente novamente:", h_no_apps: "Feche outros apps no celular e tente novamente. A lista de memória por app não está disponível.", h_check_wifi: "Confira se os dois dispositivos estão na mesma rede Wi-Fi e se o endereço do celular está correto.", h_use_other_model: "Escolha um modelo mais leve no seletor e gere novamente.", mem_reference: "com imagem de referência (estimativa)",
+  },
+  es: {
+    h_recommend_unlock: "Desbloquea el móvil y mantén Local Dream abierto.",
+    a_recommend_unlock: "Desbloquear el móvil",
+    h_recommend_foreground: "Abre Local Dream en la pantalla del móvil antes de usar modelos grandes.",
+    a_recommend_foreground: "Abrir Local Dream",
+    h_move_to_app_storage: "Local Dream > Ajustes > Almacenamiento de modelos > Almacenamiento de la app (los modelos grandes pueden fallar al leerse desde la carpeta Download).",
+    a_move_to_app_storage: "Usar almacenamiento de la app",
+    e_public_storage: "La carpeta del modelo existe en Download/LocalDream/models.",
+    e_phone_locked: "El móvil estaba bloqueado al iniciar la generación.",
+    e_app_not_foreground: "Local Dream no estaba en la pantalla del móvil al iniciar la generación.",
+    d_models_in_public_storage: "Los modelos grandes pueden fallar al leerse desde la carpeta pública Download.",
+    d_app_not_foreground: "Local Dream estaba en segundo plano al iniciar esta generación.",
+    d_out_of_memory: "El móvil se quedó sin memoria al ejecutar Local Dream.", d_native_crash: "El motor nativo de Local Dream falló.", d_host_mode_off: "El modo host de Local Dream ya no está disponible.", d_network: "Se perdió la conexión con el móvil o se agotó el tiempo de espera.", d_load_failed: "El móvil no pudo cargar este modelo.", d_unknown: "No se pudo confirmar la causa con la información disponible.",
+    e_exit: (r, at) => `Android registró ${r} a las ${at}.`, e_memory: (mb) => `${mb} MB de memoria disponibles ahora.`, e_reference: "Una imagen de referencia requiere más memoria con este modelo.", e_adb: "Conecta adb para obtener un diagnóstico más preciso.", e_request: (m, w, h, s) => `${m} · ${w}×${h} · ${s} pasos`, e_mask: "También se utilizó una máscara.",
+    reason_LOW_MEMORY: "falta de memoria", reason_CRASH: "un fallo de la aplicación", reason_CRASH_NATIVE: "un fallo nativo", reason_ANR: "que la aplicación no respondía", reason_USER_REQUESTED: "el cierre de la aplicación por el usuario", reason_SIGNALED: "la detención del proceso por una señal", reason_other: "el cierre de la aplicación",
+    a_retry: "Reintentar", a_retry_without_reference: "Reintentar sin referencia", a_retry_smaller: "Reintentar con menor tamaño", a_close_apps: "Apps que puedes cerrar", a_reopen_host_mode: "Reabrir modo host", a_check_wifi: "Comprobar Wi-Fi", a_use_other_model: "Usar otro modelo",
+    h_close_apps: "Cierra estas apps en el móvil y vuelve a intentarlo:", h_no_apps: "Cierra otras apps en el móvil y vuelve a intentarlo. No hay una lista de memoria por app disponible.", h_check_wifi: "Comprueba que ambos dispositivos estén en la misma red Wi-Fi y que la dirección del móvil sea correcta.", h_use_other_model: "Elige un modelo más ligero en el selector y vuelve a generar.", mem_reference: "con imagen de referencia (estimación)",
+  },
+  zh: {
+    h_recommend_unlock: "请解锁手机并保持 Local Dream 打开。",
+    a_recommend_unlock: "解锁手机",
+    h_recommend_foreground: "使用大型模型前，请在手机屏幕上打开 Local Dream。",
+    a_recommend_foreground: "打开 Local Dream",
+    h_move_to_app_storage: "Local Dream > 设置 > 模型存储 > 应用存储（从 Download 文件夹读取大型模型可能导致崩溃）。",
+    a_move_to_app_storage: "使用应用存储",
+    e_public_storage: "模型文件夹位于 Download/LocalDream/models 中。",
+    e_phone_locked: "生成开始时，手机处于锁定状态。",
+    e_app_not_foreground: "生成开始时，手机屏幕上未打开 Local Dream。",
+    d_models_in_public_storage: "从公共 Download 文件夹读取大型模型时可能发生崩溃。",
+    d_app_not_foreground: "此次生成开始时，Local Dream 在后台运行。",
+    d_out_of_memory: "手机运行 Local Dream 时内存不足。", d_native_crash: "Local Dream 的原生引擎崩溃了。", d_host_mode_off: "Local Dream 的受控模式已不可用。", d_network: "与手机的连接已断开或超时。", d_load_failed: "手机无法加载此模型。", d_unknown: "根据现有信息无法确认原因。",
+    e_exit: (r, at) => `Android 在 ${at} 记录了${r}。`, e_memory: (mb) => `当前可用内存为 ${mb} MB。`, e_reference: "此模型使用参考图像时需要更多内存。", e_adb: "连接 adb 可获得更准确的诊断。", e_request: (m, w, h, s) => `${m} · ${w}×${h} · ${s} 步`, e_mask: "此次还使用了蒙版。",
+    reason_LOW_MEMORY: "内存不足", reason_CRASH: "应用崩溃", reason_CRASH_NATIVE: "原生引擎崩溃", reason_ANR: "应用无响应", reason_USER_REQUESTED: "用户关闭应用", reason_SIGNALED: "进程被信号终止", reason_other: "应用退出",
+    a_retry: "重试", a_retry_without_reference: "不使用参考图像重试", a_retry_smaller: "缩小尺寸重试", a_close_apps: "可关闭的应用", a_reopen_host_mode: "重新开启受控模式", a_check_wifi: "检查 Wi-Fi", a_use_other_model: "使用其他模型",
+    h_close_apps: "请在手机上关闭以下应用，然后重试：", h_no_apps: "请关闭手机上的其他应用后重试。暂时无法获取各应用的内存用量。", h_check_wifi: "请确认两台设备连接同一 Wi-Fi 网络，并检查手机地址是否正确。", h_use_other_model: "请在模型选择器中选择内存需求较低的模型，然后重新生成。", mem_reference: "使用参考图像（估算）",
+  },
+  ja: {
+    h_recommend_unlock: "スマホのロックを解除し、Local Dream を開いたままにしてください。",
+    a_recommend_unlock: "スマホのロックを解除",
+    h_recommend_foreground: "大きなモデルを使う前に、スマホの画面で Local Dream を開いてください。",
+    a_recommend_foreground: "Local Dream を開く",
+    h_move_to_app_storage: "Local Dream > 設定 > モデルの保存先 > アプリ内ストレージを選んでください（大きなモデルを Download フォルダーから読み込むとクラッシュすることがあります）。",
+    a_move_to_app_storage: "アプリ内ストレージを使う",
+    e_public_storage: "Download/LocalDream/models にモデルのフォルダーがあります。",
+    e_phone_locked: "生成開始時、スマホがロックされていました。",
+    e_app_not_foreground: "生成開始時、スマホの画面に Local Dream が表示されていませんでした。",
+    d_models_in_public_storage: "大きなモデルを公開の Download フォルダーから読み込むと、クラッシュすることがあります。",
+    d_app_not_foreground: "生成開始時、Local Dream はバックグラウンドで動作していました。",
+    d_out_of_memory: "Local Dream の実行中にスマホのメモリが不足しました。", d_native_crash: "Local Dream のネイティブエンジンがクラッシュしました。", d_host_mode_off: "Local Dream のホストモードが利用できなくなりました。", d_network: "スマホとの接続が切断されたか、応答がタイムアウトしました。", d_load_failed: "スマホでこのモデルを読み込めませんでした。", d_unknown: "現在の情報では原因を特定できませんでした。",
+    e_exit: (r, at) => `Android は ${at} に${r}を記録しました。`, e_memory: (mb) => `現在の空きメモリは ${mb} MB です。`, e_reference: "このモデルで参考画像を使うと、必要なメモリが増えます。", e_adb: "adb を接続すると、より詳しく診断できます。", e_request: (m, w, h, s) => `${m} · ${w}×${h} · ${s} ステップです。`, e_mask: "マスクも使用されています。",
+    reason_LOW_MEMORY: "メモリ不足", reason_CRASH: "アプリのクラッシュ", reason_CRASH_NATIVE: "ネイティブエンジンのクラッシュ", reason_ANR: "アプリの応答停止", reason_USER_REQUESTED: "ユーザーによるアプリの終了", reason_SIGNALED: "シグナルによるプロセスの停止", reason_other: "アプリの終了",
+    a_retry: "再試行", a_retry_without_reference: "参考画像なしで再試行", a_retry_smaller: "小さいサイズで再試行", a_close_apps: "終了できるアプリ", a_reopen_host_mode: "ホストモードを再開", a_check_wifi: "Wi-Fi を確認", a_use_other_model: "別のモデルを使用",
+    h_close_apps: "スマホで次のアプリを終了してから、再試行してください。", h_no_apps: "スマホのほかのアプリを終了してから、再試行してください。アプリ別のメモリ使用量は取得できませんでした。", h_check_wifi: "両方の端末が同じ Wi-Fi に接続されていることと、スマホのアドレスを確認してください。", h_use_other_model: "モデル選択欄でメモリ使用量の少ないモデルを選び、もう一度生成してください。", mem_reference: "参考画像あり（推定値です）",
+  },
+};
+const EDIT_COPY = {
+  en: { edit_mode: "Image mode", edit_img2img: "Single image / mask (img2img)", edit_references: "Edit with references",
+    edit_hint: "Describe the change; refer to image 1 / image 2 in your prompt. These images guide the edit without a strength setting.",
+    edit_add: "Add reference images", edit_image: (n) => `image ${n}`, edit_limit: (n) => `Choose 1–${n} images in order (PNG, JPEG or WebP, up to 6 MiB and 16 megapixels each). More images need more phone RAM.`,
+    edit_count: (n) => `Choose 1–${n} reference images before generating.`, mask_empty: "No area painted: generating without a mask." },
+  pt: { edit_mode: "Modo de imagem", edit_img2img: "Uma imagem / máscara (img2img)", edit_references: "Editar com referências",
+    edit_hint: "Descreva a mudança; mencione imagem 1 / imagem 2 no prompt. As imagens orientam a edição sem ajuste de intensidade.",
+    edit_add: "Adicionar imagens de referência", edit_image: (n) => `imagem ${n}`, edit_limit: (n) => `Escolha de 1 a ${n} imagens na ordem desejada (PNG, JPEG ou WebP, até 6 MiB e 16 megapixels cada). Mais imagens exigem mais RAM do celular.`,
+    edit_count: (n) => `Escolha de 1 a ${n} imagens de referência antes de gerar.`, mask_empty: "Nenhuma área pintada: gerando sem máscara." },
+  es: { edit_mode: "Modo de imagen", edit_img2img: "Una imagen / máscara (img2img)", edit_references: "Editar con referencias",
+    edit_hint: "Describe el cambio; menciona imagen 1 / imagen 2 en el prompt. Las imágenes guían la edición sin ajuste de intensidad.",
+    edit_add: "Añadir imágenes de referencia", edit_image: (n) => `imagen ${n}`, edit_limit: (n) => `Elige de 1 a ${n} imágenes en orden (PNG, JPEG o WebP, hasta 6 MiB y 16 megapíxeles cada una). Más imágenes requieren más RAM del móvil.`,
+    edit_count: (n) => `Elige de 1 a ${n} imágenes de referencia antes de generar.`, mask_empty: "Ninguna zona pintada: se generará sin máscara." },
+  zh: { edit_mode: "图像模式", edit_img2img: "单张图像 / 蒙版（图生图）", edit_references: "使用参考图像编辑",
+    edit_hint: "描述要做的修改，并在提示词中指明图像 1 / 图像 2。参考图像用于引导编辑，无需设置变化强度。",
+    edit_add: "添加参考图像", edit_image: (n) => `图像 ${n}`, edit_limit: (n) => `按顺序选择 1–${n} 张图像（PNG、JPEG 或 WebP，每张不超过 6 MiB 和 1600 万像素）。图像越多，手机所需内存越多。`,
+    edit_count: (n) => `生成前请选择 1–${n} 张参考图像。`, mask_empty: "未涂绘任何区域：将不使用蒙版生成。" },
+  ja: { edit_mode: "画像モード", edit_img2img: "画像 1 枚 / マスク（img2img）", edit_references: "参考画像を使って編集",
+    edit_hint: "変更内容を説明し、プロンプト内で画像 1 / 画像 2 を指定してください。参考画像で編集を導くため、変更の強さの設定は使いません。",
+    edit_add: "参考画像を追加", edit_image: (n) => `画像 ${n}`, edit_limit: (n) => `順番に 1〜${n} 枚を選択してください（PNG・JPEG・WebP、各 6 MiB・1600 万画素まで）。画像が多いほどスマホのメモリが必要です。`,
+    edit_count: (n) => `生成前に参考画像を 1〜${n} 枚選択してください。`, mask_empty: "塗った範囲がないため、マスクなしで生成します。" },
+};
+for (const language of Object.keys(DIAG_COPY)) Object.assign(I18N[language], DIAG_COPY[language], EDIT_COPY[language]);
+const CONNECTION_COPY = {
+  en: { stop_model: "Unload model", unload_hint: "Free the phone's memory between images.", remove_confirm: "Remove this phone from this PC? Your images and history will be kept.",
+    c_required: "First, install Local Dream on the phone and download a model in the app.", c_choose_usb: "Connect with a USB cable", c_choose_wifi: "Connect over Wi-Fi", c_advanced: "Advanced",
+    c_host_path: "On the phone: Local Dream → ⋮ More → Device link → Enter host mode", c_ip_step: "Type the IP address shown on the phone.",
+    c_no_adb: "USB needs Android Platform-Tools. Wi-Fi by IP works without it.", c_tools: "Get Android Platform-Tools",
+    connection_refused: "Nothing answered at that address. Check that host mode is on and the IP matches the one shown on the phone.", unreachable: "Couldn't reach that address. Check the IP and that both devices are on the same Wi-Fi.", timeout: "Couldn't reach that address in time. Check the IP and that both devices are on the same Wi-Fi.",
+    no_host_mode: "That address did not reply as a Local Dream host. Check the IP and open host mode on the phone.", d_host_mode_off: "Host mode may have stopped, or this may be the wrong address.", d_out_of_memory: "Local Dream may have run out of memory. Check the evidence below.",
+    app_closed: "Local Dream closed on the phone. Memory pressure is one possible cause. Open the app and host mode again.", worker_stopped: "The image worker stopped while Local Dream's host mode was still responding. Reload the model and retry.",
+    backend_lost: "Connection to Local Dream Desktop lost", backend_wait: "Check that Local Dream Desktop is still running on this PC. This page will reconnect; it will not resend your image request.",
+    image_limit: "Choose a PNG, JPEG or WebP image up to 6 MiB and 16 megapixels.", open_image: "Open image",
+    quit: "Quit Local Dream Desktop", quit_busy: "An image is still running.", quit_after: "Quit after this image", quit_cancel: "Cancel", quit_wait: "Local Dream Desktop will quit after this image.", stopped: "Local Dream Desktop has stopped. You can close this tab." },
+  pt: { stop_model: "Descarregar modelo", unload_hint: "Libera a memória do celular entre imagens.", remove_confirm: "Remover este celular deste PC? Suas imagens e seu histórico serão mantidos.",
+    c_required: "Primeiro, instale o Local Dream no celular e baixe um modelo no aplicativo.", c_choose_usb: "Conectar com cabo USB", c_choose_wifi: "Conectar por Wi-Fi", c_advanced: "Avançado",
+    c_host_path: "No celular: Local Dream → ⋮ More → Device link → Enter host mode", c_ip_step: "Digite o endereço IP mostrado no celular.",
+    c_no_adb: "USB precisa do Android Platform-Tools. Wi-Fi por IP funciona sem ele.", c_tools: "Obter Android Platform-Tools",
+    connection_refused: "Nada respondeu nesse endereço. Confira se o modo host está ativo e se o IP é o mostrado no celular.", unreachable: "Não foi possível acessar esse endereço. Confira o IP e se os dois dispositivos estão no mesmo Wi-Fi.", timeout: "Esse endereço não respondeu a tempo. Confira o IP e se os dois dispositivos estão no mesmo Wi-Fi.",
+    no_host_mode: "Esse endereço não respondeu como um host Local Dream. Confira o IP e abra o modo host no celular.", d_host_mode_off: "O modo host pode ter parado, ou o endereço pode estar incorreto.", d_out_of_memory: "O Local Dream pode ter ficado sem memória. Confira as evidências abaixo.",
+    app_closed: "O Local Dream fechou no celular. Falta de memória é uma das causas possíveis. Abra o aplicativo e o modo host novamente.", worker_stopped: "O processo de geração parou enquanto o modo host ainda respondia. Recarregue o modelo e tente novamente.",
+    backend_lost: "Conexão com o Local Dream Desktop perdida", backend_wait: "Confira se o Local Dream Desktop continua aberto neste PC. A página reconectará sem reenviar o pedido de imagem.",
+    image_limit: "Escolha uma imagem PNG, JPEG ou WebP de até 6 MiB e 16 megapixels.", open_image: "Abrir imagem",
+    quit: "Sair do Local Dream Desktop", quit_busy: "Uma imagem ainda está sendo gerada.", quit_after: "Sair após esta imagem", quit_cancel: "Cancelar", quit_wait: "O Local Dream Desktop encerrará após esta imagem.", stopped: "O Local Dream Desktop foi encerrado. Você pode fechar esta aba." },
+  es: { stop_model: "Descargar modelo de la memoria", unload_hint: "Libera la memoria del móvil entre imágenes.", remove_confirm: "¿Quitar este móvil de este PC? Se conservarán tus imágenes y tu historial.",
+    c_required: "Primero instala Local Dream en el móvil y descarga un modelo en la aplicación.", c_choose_usb: "Conectar con un cable USB", c_choose_wifi: "Conectar por Wi-Fi", c_advanced: "Avanzado",
+    c_host_path: "En el móvil: Local Dream → ⋮ More → Device link → Enter host mode", c_ip_step: "Escribe la dirección IP que aparece en el móvil.",
+    c_no_adb: "USB necesita Android Platform-Tools. Wi-Fi por IP funciona sin él.", c_tools: "Obtener Android Platform-Tools",
+    connection_refused: "Nada respondió en esa dirección. Comprueba que el modo host esté activo y que el IP coincida con el del móvil.", unreachable: "No se pudo acceder a esa dirección. Comprueba el IP y que ambos dispositivos estén en la misma Wi-Fi.", timeout: "Esa dirección no respondió a tiempo. Comprueba el IP y que ambos dispositivos estén en la misma Wi-Fi.",
+    no_host_mode: "Esa dirección no respondió como un host Local Dream. Comprueba el IP y abre el modo host en el móvil.", d_host_mode_off: "El modo host puede haberse detenido, o la dirección puede ser incorrecta.", d_out_of_memory: "Local Dream puede haberse quedado sin memoria. Consulta las pruebas de abajo.",
+    app_closed: "Local Dream se cerró en el móvil. La falta de memoria es una posible causa. Abre la aplicación y el modo host de nuevo.", worker_stopped: "El proceso de generación se detuvo mientras el modo host seguía respondiendo. Recarga el modelo y reinténtalo.",
+    backend_lost: "Se perdió la conexión con Local Dream Desktop", backend_wait: "Comprueba que Local Dream Desktop siga abierto en este PC. La página se reconectará sin reenviar la solicitud de imagen.",
+    image_limit: "Elige una imagen PNG, JPEG o WebP de hasta 6 MiB y 16 megapíxeles.", open_image: "Abrir imagen",
+    quit: "Salir de Local Dream Desktop", quit_busy: "Todavía se está generando una imagen.", quit_after: "Salir después de esta imagen", quit_cancel: "Cancelar", quit_wait: "Local Dream Desktop se cerrará después de esta imagen.", stopped: "Local Dream Desktop se ha cerrado. Puedes cerrar esta pestaña." },
+  zh: { stop_model: "卸载模型", unload_hint: "在生成图像之间释放手机内存。", remove_confirm: "从此电脑移除此手机？图像和历史记录将保留。",
+    c_required: "首先在手机上安装 Local Dream，并在应用中下载一个模型。", c_choose_usb: "使用 USB 数据线连接", c_choose_wifi: "通过 Wi-Fi 连接", c_advanced: "高级",
+    c_host_path: "在手机上：Local Dream → ⋮ 更多 → 设备互联 → 进入受控模式", c_ip_step: "输入手机上显示的 IP 地址。",
+    c_no_adb: "USB 需要 Android Platform-Tools。通过 IP 的 Wi-Fi 连接无需此工具。", c_tools: "获取 Android Platform-Tools",
+    connection_refused: "该地址没有响应。请确认受控模式已开启，且 IP 与手机显示的一致。", unreachable: "无法访问该地址。请检查 IP，并确认两台设备连接同一 Wi-Fi。", timeout: "该地址未及时响应。请检查 IP，并确认两台设备连接同一 Wi-Fi。",
+    no_host_mode: "该地址未以 Local Dream 主机身份响应。请检查 IP，并在手机上开启受控模式。", d_host_mode_off: "受控模式可能已停止，或地址可能不正确。", d_out_of_memory: "Local Dream 可能内存不足。请查看下方证据。",
+    app_closed: "手机上的 Local Dream 已关闭。内存不足是可能原因之一。请重新打开应用并进入受控模式。", worker_stopped: "受控模式仍在响应，但图像生成进程已停止。请重新加载模型后重试。",
+    backend_lost: "与 Local Dream Desktop 的连接已断开", backend_wait: "请确认此电脑上的 Local Dream Desktop 仍在运行。页面会重新连接，不会重新发送图像请求。",
+    image_limit: "请选择不超过 6 MiB、1600 万像素的 PNG、JPEG 或 WebP 图像。", open_image: "打开图像",
+    quit: "退出 Local Dream Desktop", quit_busy: "仍在生成图像。", quit_after: "生成此图后退出", quit_cancel: "取消", quit_wait: "Local Dream Desktop 将在此图生成后退出。", stopped: "Local Dream Desktop 已停止。可以关闭此标签页。" },
+  ja: { stop_model: "モデルをメモリから解放", unload_hint: "画像生成の合間にスマホのメモリを解放します。", remove_confirm: "この PC からスマホを削除しますか？画像と履歴は保持されます。",
+    c_required: "まずスマホに Local Dream をインストールし、アプリでモデルをダウンロードしてください。", c_choose_usb: "USB ケーブルで接続", c_choose_wifi: "Wi-Fi で接続", c_advanced: "詳細設定",
+    c_host_path: "スマホで：Local Dream → ⋮ その他 → デバイス連携 → ホストモードを開始", c_ip_step: "スマホに表示された IP アドレスを入力してください。",
+    c_no_adb: "USB には Android Platform-Tools が必要です。IP 指定の Wi-Fi 接続には不要です。", c_tools: "Android Platform-Tools を入手",
+    connection_refused: "そのアドレスから応答がありません。ホストモードがオンで、IP がスマホの表示と一致するか確認してください。", unreachable: "そのアドレスに接続できません。IP と、両方の端末が同じ Wi-Fi に接続しているか確認してください。", timeout: "そのアドレスの応答がタイムアウトしました。IP と、両方の端末が同じ Wi-Fi に接続しているか確認してください。",
+    no_host_mode: "そのアドレスは Local Dream ホストとして応答しませんでした。IP を確認し、スマホでホストモードを開いてください。", d_host_mode_off: "ホストモードが停止したか、アドレスが間違っている可能性があります。", d_out_of_memory: "Local Dream のメモリが不足した可能性があります。下の情報を確認してください。",
+    app_closed: "スマホの Local Dream が終了しました。メモリ不足も原因の一つです。アプリとホストモードを再度開いてください。", worker_stopped: "ホストモードは応答していますが、画像生成プロセスが停止しました。モデルを再読み込みして再試行してください。",
+    backend_lost: "Local Dream Desktop との接続が切れました", backend_wait: "この PC で Local Dream Desktop が起動しているか確認してください。ページは再接続しますが、画像リクエストを再送信しません。",
+    image_limit: "6 MiB・1600 万画素以下の PNG・JPEG・WebP 画像を選んでください。", open_image: "画像を開く",
+    quit: "Local Dream Desktop を終了", quit_busy: "画像を生成中です。", quit_after: "この画像の後に終了", quit_cancel: "キャンセル", quit_wait: "この画像の生成後に Local Dream Desktop を終了します。", stopped: "Local Dream Desktop は停止しました。このタブを閉じられます。" },
+};
+for (const language of Object.keys(CONNECTION_COPY)) Object.assign(I18N[language], CONNECTION_COPY[language], {
+  d_worker_stopped: CONNECTION_COPY[language].worker_stopped, d_app_closed: CONNECTION_COPY[language].app_closed,
+});
+const HTMLLANG = { en: "en", pt: "pt-BR", es: "es", zh: "zh-CN", ja: "ja" };
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+                set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+const $ = (id) => document.getElementById(id);
+const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let lang = store.get("ld-lang") || ({ pt: "pt", es: "es", zh: "zh", ja: "ja" }[navigator.language.slice(0, 2)] || "en");
+const t = (k, ...a) => { const v = I18N[lang][k] ?? I18N.en[k]; return typeof v === "function" ? v(...a) : v; };
+const fmtS = (s) => {
+  const cjk = lang === "ja" || lang === "zh", sec = Math.max(0, Math.round(s));
+  if (sec < 60) return cjk ? `${sec} 秒` : `${sec} s`;
+  const m = Math.floor(sec / 60), r = sec % 60;
+  return cjk ? `${m} 分 ${r} 秒` : `${m} min ${String(r).padStart(2, "0")} s`;
+};
+
+function applyLang() {
+  document.documentElement.lang = HTMLLANG[lang];
+  document.title = `Local Dream Desktop (${t("unofficial")})`;
+  $("lang").value = lang;
+  document.querySelectorAll("[data-i]").forEach((el) => el.textContent = t(el.dataset.i));
+  document.querySelectorAll(".tipbox").forEach((b) => b.textContent = t(b.dataset.tip));
+  $("device").setAttribute("aria-label", t("device_lbl"));
+  $("model").setAttribute("aria-label", t("model_lbl"));
+  $("maskcanvas").setAttribute("aria-label", t("mask_canvas"));
+  $("quit").textContent = t("quit");
+  renderDevices(); renderModels(); renderSizes(); renderStage(); renderEstimate(); renderMemory(); renderStatus();
+}
+$("lang").onchange = () => { lang = $("lang").value; store.set("ld-lang", lang); applyLang(); };
+
+/* tips: a "?" opens a short explanation right under its label */
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".tip"); if (!b) return;
+  const lbl = b.closest(".lbl"), open = lbl.nextElementSibling?.classList.contains("tipbox");
+  if (open) { lbl.nextElementSibling.remove(); b.setAttribute("aria-expanded", "false"); return; }
+  const box = document.createElement("p");
+  box.className = "tipbox"; box.dataset.tip = b.dataset.tip; box.textContent = t(b.dataset.tip);
+  lbl.after(box); b.setAttribute("aria-expanded", "true");
+});
+
+/* models: every phone with what it has downloaded */
+let catalog = [], sel = null;               // sel = { phone, model }
+const FALLBACK = { size: "512x512", aspect_ratio: "1:1", steps: 20, cfg: 7, scheduler: "dpm", strength: 0.7, seed: "" };
+let opts = { ...FALLBACK, key: "" };
+const save = () => store.set("ld-opts", JSON.stringify(opts));
+const capabilities = () => sel?.model?.capabilities || sel?.model || {};   // /api/models sends them flat on the model
+const modelDefaults = () => {
+  const d = capabilities().defaults || {}, s = capabilities().sizes || {};
+  const r = s.list?.[0] || s.presets?.[0] || [s.size || s.min || 512, s.size || s.min || 512];
+  return { size: `${d.width ?? r[0]}x${d.height ?? r[1]}`, aspect_ratio: d.aspect_ratio ?? "1:1",
+           steps: d.steps ?? 20, cfg: d.cfg ?? 7, scheduler: d.scheduler ?? "dpm", strength: 0.7, seed: "",
+           prompt: d.prompt ?? "", neg: d.negative_prompt ?? "" };
+};
+
+async function loadModels() {
+  try { const r = await fetch("/api/models"); if (!r.ok) return; catalog = await r.json(); } catch { return; }
+  const oldKey = sel?.model ? `${sel.phone.id}/${sel.model.id}` : "";
+  const key = opts.key || "", flat = catalog.flatMap((p) => (p.models || []).map((m) => ({ phone: p, model: m })));
+  sel = flat.find((x) => `${x.phone.id}/${x.model.id}` === key) || null;
+  if (!sel || !available(sel.phone)) pickPhone(devices()[0]);
+  const newKey = sel?.model ? `${sel.phone.id}/${sel.model.id}` : "";
+  if (newKey !== oldKey) { modelChanged(); return; }
+  renderDevices(); renderModels(); renderSizes(); renderEstimate();
+}
+const phoneState = (p) => phones.phones.find((x) => x.id === p.id)?.state || p.state || "unreachable";
+const available = (p) => !!p && phoneState(p) === "ready";
+const devices = () => catalog.filter(available);
+function pickPhone(p) {
+  const last = (store.get("ld-model-" + p?.id) || "");
+  sel = p ? { phone: p, model: (p.models || []).find((m) => m.id === last) || p.models?.[0] || null } : null;
+}
+function renderDevices() {
+  const list = [...phones.phones, ...catalog.filter((p) => !phones.phones.some((x) => x.id === p.id))];
+  const html = (!sel ? `<option value="">${esc(t("phone_off"))}</option>` : "") + list.map((p) =>
+    `<option value="${esc(p.id)}" ${available(p) ? "" : "disabled"}>${esc(p.name)} · ${p.transport === "usb" ? "USB" : "Wi-Fi"} · ${esc(t(phoneState(p)))}</option>`).join("");
+  if ($("device")._markup !== html) { $("device").innerHTML = html; $("device")._markup = html; }
+  $("device").disabled = !devices().length || waiting || requestPending;
+  $("model").disabled = !sel?.model || waiting || requestPending;
+  $("modelrefresh").disabled = !devices().length || waiting || requestPending;
+  $("device").value = sel?.phone.id || "";
+  $("go").disabled = waiting || requestPending || backendLost || quitting || stopped || !sel?.model || !available(sel.phone);
+  // Actions for the phone in use, plus the ones that need fixing (unreachable, unplugged...).
+  const actions = list.filter((p) => p.id === sel?.phone.id || !available(p)).map((p) => {
+    const state = phoneState(p), disabled = waiting || requestPending || backendLost || quitting || stopped ? "disabled" : "";
+    const button = (action, key) => `<button type="button" class="txtbtn" data-phone="${esc(p.id)}" data-action="${action}" ${disabled} ${action === "stop" ? `title="${esc(t("unload_hint"))}"` : ""} aria-label="${esc(t(key) + ' · ' + p.name)}">${esc(t(key))}</button>`;
+    return `<div><span>${esc(p.name)}</span> ${["no_host_mode", "connection_refused", "unreachable", "timeout"].includes(state) ? p.has_adb ? button("host_mode", "open_host") : `<small>${esc(t("c_host_path"))}</small>` : ""}
+      ${state === "ready" ? button("stop", "stop_model") : ""}
+      ${(p.transport === "usb" ? p.has_lan : p.has_usb) ? button("transport", p.transport === "usb" ? "switch_lan" : "switch_usb") : ""}${button("remove", "remove_phone")}</div>`;
+  }).join("");
+  if ($("phoneactions")._markup !== actions) { $("phoneactions").innerHTML = actions; $("phoneactions")._markup = actions; }
+}
+$("phoneactions").onclick = (e) => {
+  const b = e.target.closest("button[data-phone]"); if (!b) return;
+  const p = phones.phones.find((x) => x.id === b.dataset.phone) || catalog.find((x) => x.id === b.dataset.phone);
+  if (!p || (b.dataset.action === "remove" && !confirm(t("remove_confirm")))) return;
+  const body = { phone_id: p.id }, action = b.dataset.action;
+  if (action === "transport") body.transport = p.transport === "usb" ? "lan" : "usb";
+  runAction(action === "transport" || action === "remove" ? `/api/phones/${action}` : `/api/${action}`, body, action === "stop" ? "stopping" : "connecting");
+};
+$("device").onchange = () => { pickPhone(catalog.find((x) => x.id === $("device").value)); modelChanged(); };
+$("modelrefresh").onclick = () => runAction("/api/connect");
+function renderModels() {
+  const s = $("model"), ms = sel?.phone.models || [];
+  const markup = ms.map((m) =>
+    `<option value="${esc(m.id)}">${esc(m.name)}${m.family === "dit" ? " · DiT" : m.family === "sdxl" ? " · SDXL" : m.family === "anima" ? " · Anima" : ""}${m.family === "sd15cpu" ? " · CPU" : ""}</option>`).join("");
+  if (s._markup !== markup) { s.innerHTML = markup; s._markup = markup; }
+  s.disabled = !ms.length || waiting || requestPending;
+  if (sel?.model) s.value = sel.model.id;
+  $("mdesc").textContent = sel?.model ? sel.model.description || "" : t("no_models");
+}
+$("model").onchange = () => { sel = { phone: sel.phone, model: sel.phone.models.find((m) => m.id === $("model").value) }; modelChanged(); };
+function modelChanged() {
+  refreshMemory();
+  if (!sel?.model) { opts.key = ""; renderDevices(); renderModels(); renderSizes(); save(); renderEstimate(); return; }
+  store.set("ld-model-" + sel.phone.id, sel.model.id);
+  const d = modelDefaults(); opts = { ...opts, ...d, key: `${sel.phone.id}/${sel.model.id}` };
+  fillPrompt(d.prompt); $("neg").value = d.neg;
+  renderDevices(); renderModels(); renderSizes(); sync(); save(); renderEstimate();
+}
+let samplePrompt = null;   // the model's sample prompt last put in the box, so it can be swapped for the next one
+function fillPrompt(sample) {
+  const cur = $("prompt").value.trim();
+  if (!cur || cur === samplePrompt) { $("prompt").value = sample || ""; samplePrompt = sample || null; }
+}
+
+function renderSizes() {
+  const s = capabilities().sizes || {}, [w, h] = opts.size.split("x").map(Number);
+  let res = s.kind === "list" ? s.list || [] : s.kind === "dit" ? s.presets || [] : [];
+  if (s.kind === "square") for (let n = s.min; n <= s.max; n += s.step) res.push([n, n]);
+  const name = (w, h) => t(w === h ? "square" : h > w ? "portrait" : "landscape");
+  $("sizes").innerHTML = s.kind === "fixed" ? (s.aspects || ["1:1"]).map((a) =>
+    `<button type="button" data-aspect="${esc(a)}" aria-pressed="${opts.aspect_ratio === a}">${esc(name(...a.split(":").map(Number)))}<small>${esc(s.size)} · ${esc(a)}</small></button>`).join("") :
+    res.map(([w, h]) => `<button type="button" data-size="${esc(w)}x${esc(h)}" aria-pressed="${opts.size === `${w}x${h}`}">${esc(name(w, h))}<small>${esc(w)}×${esc(h)}</small></button>`).join("");
+  $("customsize").hidden = s.kind !== "dit";
+  $("width").disabled = $("height").disabled = s.kind !== "dit";
+  if (s.kind === "dit") for (const [id, n] of [["width", w], ["height", h]]) {
+    $(id).min = s.min; $(id).max = s.max; $(id).step = s.step; $(id).value = n;
+  }
+  renderReferences(); renderMask();
+}
+$("sizes").onclick = (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.aspect) { opts.aspect_ratio = b.dataset.aspect; opts.size = `${capabilities().sizes.size}x${capabilities().sizes.size}`; }
+  else { opts.size = b.dataset.size; opts.aspect_ratio = "1:1"; }
+  renderSizes(); save(); renderEstimate();
+};
+for (const id of ["width", "height"]) $(id).oninput = () => {
+  opts.size = `${$("width").value}x${$("height").value}`;
+  $("sizes").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.size === opts.size)));
+  renderMask(); save(); renderEstimate();
+};
+function validSize() {
+  const s = capabilities().sizes || {}, [w, h] = opts.size.split("x").map(Number);
+  if (!Number.isInteger(w) || !Number.isInteger(h)) return false;
+  const inRange = (v) => v >= s.min && v <= s.max && (v - s.min) % s.step === 0;
+  if (s.kind === "list") return (s.list || []).some(([a, b]) => a === w && b === h);
+  if (s.kind === "dit") return inRange(w) && inRange(h);
+  if (s.kind === "square") return w === h && inRange(w);
+  return s.kind === "fixed" && w === s.size && h === s.size && (s.aspects || ["1:1"]).includes(opts.aspect_ratio);
+}
+
+function sync() {
+  for (const k of ["steps", "cfg", "strength"]) { $(k).value = opts[k]; $(k + "v").textContent = Number(opts[k]).toFixed(k === "steps" ? 0 : k === "cfg" ? 1 : 2); }
+  $("seed").value = opts.seed;
+  $("scheduler").value = opts.scheduler;
+  $("cfg").step = "any";
+}
+for (const k of ["steps", "cfg", "strength"]) $(k).oninput = () => { opts[k] = Number($(k).value); sync(); save(); if (k === "steps") renderEstimate(); };
+$("seed").oninput = () => { opts.seed = $("seed").value.replace(/[^\d]/g, ""); $("seed").value = opts.seed; save(); };
+$("dice").onclick = () => { opts.seed = String(Math.floor(Math.random() * 2 ** 31)); sync(); save(); };
+$("scheduler").oninput = () => { opts.scheduler = $("scheduler").value; save(); };
+$("restore").onclick = () => {
+  const d = modelDefaults(); opts = { ...opts, ...d };
+  fillPrompt(d.prompt); $("neg").value = d.neg; renderSizes(); sync(); save(); renderEstimate();
+};
+
+/* Memory is advisory; LAN without an attached adb transport simply has no reading. */
+let memoryData = null, memoryKey = "", memorySerial = 0, memoryInFlight = false;
+function renderMemory() {
+  const key = sel?.model ? `${sel.phone.id}/${sel.model.id}` : "";
+  const known = key && key === memoryKey && memoryData && memoryData.available_mb != null;
+  const gb = (mb) => (mb / 1000).toLocaleString(HTMLLANG[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const count = editMode === "references" && capabilities().reference_edit === true ? references.length : Number(!!refData);
+  const withReference = count > 0 && ["dit", "sdxl", "anima"].includes(capabilities().family);
+  // ponytail: reference overhead is an estimate, to be measured on supported phones.
+  const needed = (key === memoryKey ? memoryData?.needed_mb : null) || 0;
+  const totalNeeded = needed + (withReference && key === memoryKey ? count * (memoryData?.reference_extra_mb || 0) : 0);
+  const low = known && memoryData.available_mb < totalNeeded;
+  $("memrow").hidden = !key;
+  $("memrow").classList.toggle("low", !!low);
+  $("memory").textContent = !key ? "" : known
+    ? t(low ? "low_memory" : "mem_line", gb(memoryData.available_mb), gb(totalNeeded))
+    : t("mem_unknown", needed ? gb(totalNeeded) : "?");
+  if (key && withReference) $("memory").textContent += ` · ${t("mem_reference")}`;
+  renderAppWarnings();
+}
+function renderAppWarnings() {
+  const key = sel?.model ? `${sel.phone.id}/${sel.model.id}` : "";
+  const state = key && key === memoryKey ? memoryData?.app_state : null;
+  const warnings = [];
+  if (state?.foreground === false) warnings.push(t("h_recommend_foreground"));
+  if (state?.locked === true) warnings.push(t("h_recommend_unlock"));
+  $("appwarnings").textContent = warnings.join("\n");
+  $("appwarnings").hidden = !warnings.length;
+}
+$("memrefresh").onclick = () => refreshMemory();
+// RAM changes as other apps open and close on the phone: refresh while the page is visible and idle.
+setInterval(() => { if (!document.hidden && !waiting && !requestPending) refreshMemory(); }, 15000);
+async function refreshMemory() {
+  const key = sel?.model ? `${sel.phone.id}/${sel.model.id}` : "";
+  renderMemory();
+  if (!key || waiting || requestPending || memoryInFlight || backendLost || quitting || stopped) return;
+  const serial = ++memorySerial;
+  memoryInFlight = true;
+  try {
+    const query = new URLSearchParams({ phone_id: sel.phone.id, model_id: sel.model.id });
+    const r = await fetch(`/api/memory?${query}`);
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    if (serial !== memorySerial || key !== `${sel?.phone.id}/${sel?.model.id}`) return;
+    memoryKey = key; memoryData = data;
+  } catch { if (serial !== memorySerial) return; if (key === `${sel?.phone.id}/${sel?.model.id}`) memoryData = null; }
+  finally {
+    memoryInFlight = false;
+    // A selection change during this request gets its own refresh once it finishes.
+    if (key !== (sel?.model ? `${sel.phone.id}/${sel.model.id}` : "")) refreshMemory();
+  }
+  renderMemory();
+}
+
+/* estimate under the button, from past images with this model */
+let history = [];
+function renderEstimate() {
+  if (!sel?.model) { $("est").textContent = ""; return; }
+  const [w, h] = opts.size.split("x").map(Number), rates = history.map((it) => it.meta)
+    .filter((m) => m.phone_ms && m.steps && m.width && m.model === sel.model.name)
+    .map((m) => m.phone_ms / m.steps / (m.width * m.height / 1e6)).sort((a, b) => a - b);
+  $("est").textContent = rates.length ? t("est", fmtS(rates[rates.length >> 1] * opts.steps * w * h / 1e9), sel.phone.name) : "";
+}
+
+/* reference image: file, drop or Ctrl+V */
+let refData = null, refName = null, refReady = false;
+let editMode = "image", references = [], referenceLoading = false;
+function renderReferences() {
+  const supported = capabilities().reference_edit === true;
+  if (!supported) editMode = "image";
+  const editing = editMode === "references";
+  $("refmodewrap").hidden = !supported;
+  $("refmode").value = editMode;
+  $("singleimage").hidden = editing;
+  $("referenceedit").hidden = $("referencehint").hidden = !editing;
+  if (editing) $("prompt").setAttribute("aria-describedby", "referencehint");
+  else $("prompt").removeAttribute("aria-describedby");
+  $("referencelimit").textContent = t("edit_limit", capabilities().max_references);
+  $("addreferences").disabled = referenceLoading || references.length >= capabilities().max_references;
+  $("referencelist").innerHTML = references.map((ref, i) => `<li class="ref"><img src="${esc(ref.data)}" alt="${esc(t("edit_image", i + 1))}"><span class="grow">${esc(t("edit_image", i + 1))}</span><button type="button" class="txtbtn" data-remove-reference="${i}" aria-label="${esc(t("remove") + ' · ' + t("edit_image", i + 1))}">${esc(t("remove"))}</button></li>`).join("");
+}
+$("refmode").onchange = () => {
+  editMode = $("refmode").value === "references" && capabilities().reference_edit === true ? "references" : "image";
+  resetMask(); disarm(); renderReferences(); renderMask(); renderMemory();
+};
+$("addreferences").onclick = () => $("referencefiles").click();
+$("referencelist").onclick = (event) => {
+  const button = event.target.closest("button[data-remove-reference]");
+  if (!button) return;
+  const index = Number(button.dataset.removeReference);
+  references.splice(index, 1);
+  $("referenceerror").textContent = ""; renderReferences(); renderMemory();
+  ($("referencelist").querySelector(`[data-remove-reference="${index}"]`) || $("addreferences")).focus();
+};
+async function addReferences(files) {
+  if (referenceLoading || editMode !== "references" || capabilities().reference_edit !== true) return;
+  const chosen = [...files], limit = capabilities().max_references;
+  $("referenceerror").textContent = "";
+  if (references.length + chosen.length > limit) { $("referenceerror").textContent = t("edit_count", limit); return; }
+  if (chosen.some((file) => !["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 6 * 1024 * 1024)) {
+    $("referenceerror").textContent = t("edit_limit", limit); return;
+  }
+  const key = `${sel.phone.id}/${sel.model.id}`;
+  referenceLoading = true; renderReferences();
+  try {
+    const loaded = [];
+    for (const file of chosen) {
+      const data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reader.onabort = () => reject(new Error());
+        reader.readAsDataURL(file);
+      });
+      loaded.push({ data });
+    }
+    if (editMode === "references" && capabilities().reference_edit === true && key === `${sel?.phone.id}/${sel?.model.id}`) references.push(...loaded);
+  } catch { $("referenceerror").textContent = t("bad_image"); }
+  finally { referenceLoading = false; $("referencefiles").value = ""; renderReferences(); renderMemory(); }
+}
+$("referencefiles").onchange = () => addReferences($("referencefiles").files);
+function setRef(file, name) {
+  if (!file || !["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 6 * 1024 * 1024) {
+    $("referenceerror").textContent = t("image_limit"); return;
+  }
+  const r = new FileReader();
+  r.onload = () => {
+    $("referenceerror").textContent = "";
+    resetMask(); refReady = false; refData = r.result; refName = name;
+    $("refimg").src = refData; $("refbox").hidden = false; $("pick").hidden = true;
+    renderMask(); renderMemory();
+  };
+  r.onerror = r.onabort = () => { $("referenceerror").textContent = t("bad_image"); };
+  r.readAsDataURL(file);
+}
+$("refimg").onload = () => {
+  if ($("refimg").naturalWidth * $("refimg").naturalHeight > 16000000) {
+    $("clearref").onclick(); $("referenceerror").textContent = t("image_limit"); return;
+  }
+  refReady = true; renderMask();
+};
+$("refimg").onerror = () => { $("clearref").onclick(); $("referenceerror").textContent = t("bad_image"); };
+$("pick").onclick = () => $("file").click();
+$("file").onchange = () => { const f = $("file").files[0]; if (f) setRef(f, f.name); };
+$("clearref").onclick = () => { refData = refName = null; refReady = false; resetMask(); $("file").value = ""; $("refbox").hidden = true; $("pick").hidden = false; renderMask(); renderMemory(); };
+let pasteArmed = 0;                          // an image paste is taken only right after "Paste"
+const disarm = () => { pasteArmed = 0; $("pastenow").hidden = true; };
+$("pastebtn").onclick = async () => {
+  try {                                       // direct read where the browser allows it
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find((x) => x.startsWith("image/"));
+      if (type) { setRef(new File([await item.getType(type)], "pasted", { type }), t("pasted")); disarm(); return; }
+    }
+  } catch {}
+  pasteArmed = Date.now() + 30000; $("pastenow").hidden = false;   // else: press Ctrl+V now
+};
+document.addEventListener("paste", (e) => {
+  const item = [...(e.clipboardData?.items || [])].find((i) => i.type.startsWith("image/"));
+  if (!item || Date.now() > pasteArmed) return;     // text, or an image nobody asked for
+  e.preventDefault(); setRef(item.getAsFile(), t("pasted")); disarm();
+});
+$("pick").ondragover = (e) => { e.preventDefault(); $("pick").classList.add("drop"); };
+$("pick").ondragleave = () => $("pick").classList.remove("drop");
+$("pick").ondrop = (e) => { e.preventDefault(); $("pick").classList.remove("drop"); const f = e.dataTransfer.files[0]; if (f?.type.startsWith("image/")) setRef(f, f.name); };
+
+/* Opaque black/white PNG: white repaints. Keep stroke commands for undo rather
+   than holding full-resolution bitmap snapshots. No mask is sent until enabled. */
+let maskEnabled = false, maskKey = "", maskCommands = [], maskStroke = null, maskPointer = null, maskErase = false;
+function resetMask() {
+  maskEnabled = false; maskKey = ""; maskCommands = []; maskStroke = null; maskPointer = null; maskErase = false;
+  $("maskempty").hidden = true;
+}
+function renderMask() {
+  const supported = editMode !== "references" && !!refData && refReady && capabilities().inpaint === true && validSize();
+  $("masktool").hidden = !supported;
+  if (!supported) { resetMask(); $("maskeditor").hidden = true; return; }
+  const key = `${sel.phone.id}/${sel.model.id}/${opts.size}/${opts.aspect_ratio}`;
+  if (key !== maskKey) {
+    maskKey = key; maskCommands = []; maskStroke = null; maskPointer = null;
+    const [w, h] = opts.size.split("x").map(Number), image = $("refimg");
+    for (const id of ["maskbase", "maskcanvas"]) { $(id).width = w; $(id).height = h; }
+    // Match native decode_image's integer resize + center crop. Send this same
+    // preview as the source only for masked requests, ensuring pixel alignment.
+    const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight);
+    const sw = Math.floor(image.naturalWidth * scale), sh = Math.floor(image.naturalHeight * scale);
+    const base = $("maskbase").getContext("2d");
+    base.fillStyle = "#000"; base.fillRect(0, 0, w, h);
+    base.drawImage(image, -Math.floor((sw - w) / 2), -Math.floor((sh - h) / 2), sw, sh);
+    redrawMask();
+  }
+  $("paintmask").setAttribute("aria-pressed", String(maskEnabled));
+  $("maskeditor").hidden = !maskEnabled;
+  $("maskbrush").setAttribute("aria-pressed", String(!maskErase));
+  $("maskeraser").setAttribute("aria-pressed", String(maskErase));
+  $("maskundo").disabled = !maskCommands.length;
+}
+function drawMaskStroke(stroke, from = 0) {
+  const ctx = $("maskcanvas").getContext("2d"), points = stroke.points;
+  ctx.fillStyle = ctx.strokeStyle = stroke.erase ? "#000" : "#fff";
+  ctx.lineWidth = stroke.size; ctx.lineCap = ctx.lineJoin = "round";
+  if (from === 0) {
+    ctx.beginPath(); ctx.arc(points[0].x, points[0].y, stroke.size / 2, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.beginPath(); ctx.moveTo(points[from].x, points[from].y);
+  for (const point of points.slice(from + 1)) ctx.lineTo(point.x, point.y);
+  ctx.stroke();
+}
+function redrawMask() {
+  $("maskempty").hidden = true;
+  const canvas = $("maskcanvas"), ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (const command of maskCommands) {
+    if (command.kind === "clear") { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    else if (command.kind === "invert") {
+      const bitmap = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < bitmap.data.length; i += 4) {
+        for (let channel = 0; channel < 3; channel++) bitmap.data[i + channel] = 255 - bitmap.data[i + channel];
+      }
+      ctx.putImageData(bitmap, 0, 0);
+    } else drawMaskStroke(command);
+  }
+  $("maskundo").disabled = !maskCommands.length;
+}
+function maskPoint(event) {
+  const canvas = $("maskcanvas"), rect = canvas.getBoundingClientRect();
+  return { x: Math.max(0, Math.min(canvas.width, (event.clientX - rect.left) * canvas.width / rect.width)),
+           y: Math.max(0, Math.min(canvas.height, (event.clientY - rect.top) * canvas.height / rect.height)) };
+}
+$("paintmask").onclick = () => { maskEnabled = !maskEnabled; renderMask(); };
+$("brushsize").oninput = () => { $("brushsizev").textContent = `${$("brushsize").value} px`; };
+$("maskbrush").onclick = () => { maskErase = false; renderMask(); };
+$("maskeraser").onclick = () => { maskErase = true; renderMask(); };
+for (const kind of ["clear", "invert"]) $("mask" + kind).onclick = () => { maskCommands.push({ kind }); redrawMask(); };
+$("maskundo").onclick = () => { maskCommands.pop(); redrawMask(); };
+$("maskcanvas").onpointerdown = (event) => {
+  if (!maskEnabled || maskPointer !== null || event.button !== 0) return;
+  $("maskempty").hidden = true;
+  event.preventDefault(); maskPointer = event.pointerId;
+  $("maskcanvas").setPointerCapture(event.pointerId);
+  maskStroke = { kind: "stroke", erase: maskErase, size: Number($("brushsize").value), points: [maskPoint(event)] };
+  maskCommands.push(maskStroke); drawMaskStroke(maskStroke); $("maskundo").disabled = false;
+};
+$("maskcanvas").onpointermove = (event) => {
+  if (event.pointerId !== maskPointer || !maskStroke) return;
+  event.preventDefault(); const from = maskStroke.points.length - 1;
+  maskStroke.points.push(maskPoint(event)); drawMaskStroke(maskStroke, from);
+};
+for (const name of ["onpointerup", "onpointercancel", "onlostpointercapture"]) $("maskcanvas")[name] = (event) => {
+  if (event.pointerId !== maskPointer) return;
+  maskStroke = null; maskPointer = null;
+  if ($("maskcanvas").hasPointerCapture(event.pointerId)) $("maskcanvas").releasePointerCapture(event.pointerId);
+};
+function exportMask() {
+  $("maskempty").hidden = true;
+  if (editMode === "references" || !maskEnabled || !refData || !refReady || capabilities().inpaint !== true || !validSize()) return null;
+  const canvas = $("maskcanvas"), pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+  let painted = false;
+  for (let i = 0; i < pixels.length; i += 4) if (pixels[i] > 0) { painted = true; break; }
+  if (!painted) { $("maskempty").hidden = false; return null; }
+  return $("maskcanvas").toDataURL("image/png").split(",", 2)[1];
+}
+
+/* token counter (only while a model is loaded) */
+let tokTimer;
+$("prompt").oninput = () => {
+  clearTimeout(tokTimer);
+  tokTimer = setTimeout(async () => {
+    try {
+      const d = await (await fetch("/api/tokenize", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: $("prompt").value, phone_id: sel?.phone.id }) })).json();
+      $("tok").textContent = d.count != null ? (d.max ? `${d.count}/${d.max}` : String(d.count)) : "";
+      $("tok").style.color = d.max && d.count > d.max ? "#ffb4ab" : "";
+    } catch {}
+  }, 400);
+};
+
+/* result stage */
+let view = { kind: "empty" }, waiting = false, requestPending = false, phones = { phones: [] }, job = null, clock = 0;
+let lastRequest = null;
+function diagnosisEvidence(fact) {
+  if (fact === "reference_uses_more_memory") return t("e_reference");
+  if (fact === "adb_unavailable") return t("e_adb");
+  if (fact === "app_not_foreground") return t("e_app_not_foreground");
+  if (fact === "phone_locked") return t("e_phone_locked");
+  if (fact === "models_in_public_storage") return t("e_public_storage");
+  if (fact?.code === "memory_available") return t("e_memory", fact.mb);
+  if (fact?.code === "exit_reason") return t("e_exit", t(`reason_${fact.reason}`) || t("reason_other"),
+    new Date(fact.timestamp * 1000).toLocaleString(HTMLLANG[lang]));
+  if (fact?.code === "request") return t("e_request", fact.model || fact.family, fact.width, fact.height, fact.steps) + (fact.mask ? ` · ${t("e_mask")}` : "");
+  return "";
+}
+async function diagnosisAction(action) {
+  if (waiting || requestPending) return;
+  const diagnosis = view.diagnosis;
+  if (action.startsWith("retry")) {
+    if (!lastRequest) return;
+    const body = { ...lastRequest };
+    if (action === "retry_without_reference") {
+      for (const key of ["image", "image_b64", "strength", "denoise_strength", "reference_name", "mask", "reference_images"]) delete body[key];
+    } else if (action === "retry_smaller") {
+      if (!diagnosis?.smaller) return;
+      Object.assign(body, diagnosis.smaller);
+    }
+    await submitGeneration(body);
+  } else if (action === "reopen_host_mode") {
+    const phone_id = view.phone_id || lastRequest?.phone_id || sel?.phone.id;
+    const phone = phones.phones.find((p) => p.id === phone_id);
+    if (phone?.has_adb) { if (phone_id) await runAction("/api/host_mode", { phone_id }); }
+    else { view.hint = t("c_host_path"); renderStage(); }
+  } else {
+    const apps = diagnosis?.apps || [];
+    view.hint = action === "close_apps"
+      ? (apps.length ? `${t("h_close_apps")}\n${apps.map((app) => `${app.package} · ${app.mb} MB`).join("\n")}` : t("h_no_apps"))
+      : t(`h_${action}`);
+    renderStage();
+  }
+}
+const anyPhone = () => phones.phones.some(available);
+const errorMessage = (error) => {
+  const code = typeof error === "string" ? error : error?.code;
+  const message = t(code) || t("failed");
+  if (code === "bad_param") {
+    // Only known field/range pairs are displayed. Never echo arbitrary phone text.
+    const fields = { steps: ["steps", "1..50"], cfg: ["cfg", "1..30"], strength: ["denoise", "0..1"], seed: ["seed_lbl", "0..4294967295"] };
+    const match = /^(steps|cfg|strength|seed): (.+)$/.exec(error?.detail || "");
+    if (match && fields[match[1]][1] === match[2]) return `${message} ${t(fields[match[1]][0])}: ${match[2]}.`;
+  }
+  if (code === "bad_image" && ["image exceeds 6 MiB", "use PNG, JPEG or WebP, at most 16 MP"].includes(error?.detail)) return t("image_limit");
+  return code === "load_failed" && error?.detail ? `${message} ${error.detail}` : message;
+};
+async function post(url, body) {
+  let r, d;
+  try {
+    r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    d = await r.json();
+  } catch { throw new Error(t("offline")); }
+  if (!r.ok) throw new Error(errorMessage({ code: d.error, detail: d.detail }));
+  return d;
+}
+let connectionView = null;
+async function runAction(url, body, kind = "connecting") {
+  if (waiting || requestPending || backendLost || quitting || stopped) return;
+  connectionView = view.kind === "connect" ? { ...view } : null;
+  requestPending = true; actionSerial++; renderDevices();
+  try {
+    await post(url, body);
+    waiting = true; waitingFor = kind; factsLine = ""; job = null;
+    view = { kind: "progress" }; renderStage();
+  } catch (e) {
+    connectionView = null;
+    view = view.kind === "connect" ? { ...view, err: e.message || t("offline") } : { kind: "error", msg: e.message || t("offline") };
+    renderStage();
+  } finally {
+    requestPending = false;
+    await loadModels(); renderDevices(); schedulePoll(0);
+  }
+}
+let pairingTimer = null, pairingEpoch = 0;
+function offerPairing() {
+  return phones.phones.some((p) => p.features?.desktop_link === true);
+}
+async function startPairing(epoch) {
+  if (!offerPairing() || epoch !== pairingEpoch || view.kind !== "connect") return;
+  try {
+    const r = await fetch("/api/desktop-link");
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    if (epoch !== pairingEpoch || view.kind !== "connect") return;
+    const qr = qrcode(0, "M"); qr.addData(data.url); qr.make();
+    $("pairqr").innerHTML = qr.createSvgTag(4, 16);
+    $("pairqr").setAttribute("aria-label", t("c_qr_label"));
+  } catch {
+    if (epoch === pairingEpoch && $("pairnote")) $("pairnote").textContent = t("c_discovery_failed");
+    return;
+  }
+  async function check() {
+    if (epoch !== pairingEpoch || view.kind !== "connect" || !$("desktoppair").open || document.hidden) return;
+    const started = Date.now();
+    try {
+      const r = await fetch("/api/discover", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      if (!r.ok) throw new Error();
+      const found = await r.json();
+      if (epoch !== pairingEpoch || view.kind !== "connect") return;
+      const paired = found.find((p) => p.host && p.transport !== "usb" && p.phone_id && p.state === "ready" && p.desktop_link?.token_ok);
+      if (paired) {
+        view = { kind: "empty", paired: true }; renderStage();
+        await poll(); await loadModels(); return;
+      }
+      $("pairnote").textContent = t("c_none");
+    } catch {
+      if (epoch === pairingEpoch && $("pairnote")) $("pairnote").textContent = t("c_discovery_failed");
+    }
+    if (epoch === pairingEpoch && view.kind === "connect") pairingTimer = setTimeout(check, Math.max(0, 2000 - (Date.now() - started)));
+  }
+  check();
+}
+
+function renderStage() {
+  clearTimeout(pairingTimer); const epoch = ++pairingEpoch;
+  const box = $("stage");
+  if (stopped || backendLost || view.kind === "quit_busy") {
+    box.innerHTML = `<div class="empty" role="status"><h3>${esc(t(stopped ? "stopped" : backendLost ? "backend_lost" : "quit_busy"))}</h3>
+      ${backendLost ? `<p>${esc(t("backend_wait"))}</p>` : ""}
+      ${view.kind === "quit_busy" && !backendLost && !stopped ? `<div class="actions"><button type="button" class="btn small" id="quitafter">${esc(t("quit_after"))}</button><button type="button" class="btn small ghost" id="quitcancel">${esc(t("quit_cancel"))}</button></div>` : ""}</div>`;
+    if (view.kind === "quit_busy" && !backendLost && !stopped) {
+      $("quitafter").onclick = () => quitDesktop(true);
+      $("quitcancel").onclick = () => { view = quitView || { kind: "empty" }; renderStage(); };
+    }
+  } else if (view.kind === "empty") {
+    box.innerHTML = `<div class="empty"><svg class="ico"><use href="#i-image"/></svg>
+      <h3>${t(view.paired ? "c_paired" : "no_results")}</h3><p>${t("create_first")}</p></div>`;
+  } else if (view.kind === "connect") {
+    const pairing = offerPairing();
+    box.innerHTML = `<div class="connect">
+      <h3>${t("c_title")}</h3><p class="muted">${t("c_required")}</p><p class="muted">${t("c_sub")}</p>
+      ${view.connection !== "wifi" ? '<p class="err" id="cerr" hidden></p>' : ""}
+      ${pairing ? `<details class="way" id="desktoppair" open><summary>${t("c_scan")}</summary>
+        <p class="note">${t("c_scan_hint")}</p><div class="qr" id="pairqr" role="img"></div>
+        <p class="note" id="pairnote" role="status" aria-live="polite">${t("c_searching")}</p></details>` : ""}
+      <div class="ways">
+        <div class="actions"><button type="button" class="btn small ghost" id="chooseusb" aria-pressed="${view.connection === "usb"}">${t("c_choose_usb")}</button><button type="button" class="btn small ghost" id="choosewifi" aria-pressed="${view.connection === "wifi"}">${t("c_choose_wifi")}</button></div>
+        <section class="way" ${view.connection !== "usb" ? "hidden" : ""}><h4>${t("c_usb")}</h4>
+          <p class="note">${t("c_dev")}</p>
+          <ol><li>${t("c_usb2")}</li><li>${t("c_usb3")}</li><li>${esc(t("c_host_path"))}</li></ol>
+          <p class="note" id="usbnote"></p></section>
+        <section class="way" ${view.connection !== "wifi" ? "hidden" : ""}><h4>${t("c_wifi")}</h4>
+          <ol><li>${esc(t("c_host_path"))}</li><li>${t("c_ip_step")}</li></ol>
+          <form id="lanf" class="pairf">
+            <label>${t("c_host")}<input id="lhost" placeholder="192.0.2.50" autocomplete="off" aria-describedby="cerr" required></label>
+            ${view.connection === "wifi" ? '<p class="err" id="cerr" role="alert" hidden></p>' : ""}
+            <button class="btn small">${t("c_add")}</button>
+          </form></section>
+        <details class="way"><summary>${t("c_advanced")}</summary><h4>${t("c_wireless")}</h4>
+          <p class="note">${t("c_wireless_hint")}</p>
+          <p class="note">${t("c_dev")}</p>
+          <ol><li>${t("c_wifi2")}</li><li>${t("c_wifi3")}</li></ol>
+          <form id="pairf" class="pairf">
+            <label>${t("c_addr")}<input id="paddr" placeholder="192.0.2.50:37123" autocomplete="off" required></label>
+            <label>${t("c_code")}<input id="pcode" placeholder="123456" inputmode="numeric" maxlength="6" autocomplete="off" required></label>
+            <label>${t("c_connect_addr")}<input id="pconnect" placeholder="192.0.2.50:42123" autocomplete="off"></label>
+            <button class="btn small">${t("c_pair")}</button>
+          </form></details>
+      </div>
+      <p class="muted">${t("c_before")} <button type="button" class="txtbtn" id="findbtn">${t("c_find")}</button></p></div>`;
+    if (view.err) { $("cerr").textContent = view.err; $("cerr").hidden = false; }
+    $("lhost").value = view.host || "";
+    $("lhost").oninput = () => { view.host = $("lhost").value; };
+    for (const choice of ["usb", "wifi"]) $("choose" + choice).onclick = () => { view.connection = choice; renderStage(); };
+    renderUsbNote();
+    $("lanf").onsubmit = (ev) => { ev.preventDefault(); view.host = $("lhost").value; return runAction("/api/phones/add_lan", { host: view.host.trim() }); };
+    $("pairf").onsubmit = (ev) => {
+      ev.preventDefault(); const body = { address: $("paddr").value.trim(), code: $("pcode").value.trim() };
+      if ($("pconnect").value.trim()) body.connect_address = $("pconnect").value.trim();
+      runAction("/api/pair", body);
+    };
+    $("findbtn").onclick = () => runAction("/api/connect");
+    if (pairing) {
+      $("desktoppair").open = true;
+      let wasOpen = true;
+      $("desktoppair").ontoggle = () => {
+        if ($("desktoppair").open === wasOpen) return;
+        wasOpen = $("desktoppair").open;
+        clearTimeout(pairingTimer); const next = ++pairingEpoch;
+        if ($("desktoppair").open && view.kind === "connect") startPairing(next);
+      };
+      startPairing(epoch);
+    }
+  } else if (view.kind === "error") {
+    const diagnosis = view.diagnosis;
+    const actions = (diagnosis?.actions || []).filter((action) => !action.startsWith("retry") || lastRequest);
+    const recoveryPhone = phones.phones.find((p) => p.id === (view.phone_id || lastRequest?.phone_id || sel?.phone.id));
+    const evidence = (diagnosis?.evidence || []).map(diagnosisEvidence).filter(Boolean);
+    if (diagnosis && ["unknown", "load_failed"].includes(diagnosis.cause) && view.msg) evidence.unshift(view.msg);
+    box.innerHTML = `<div class="empty"><svg class="ico" style="color:var(--err-on)"><use href="#i-image"/></svg>
+      <h3>${t("failed")}</h3><p class="err" style="max-width:440px">${esc(diagnosis ? t(`d_${diagnosis.cause}`) || t("d_unknown") : view.msg)}</p>
+      ${evidence.slice(0, 3).map((line) => `<p class="muted">${esc(line)}</p>`).join("")}
+      <div class="actions" style="flex-wrap:wrap;justify-content:center">${actions.filter((action) => action !== "reopen_host_mode" || recoveryPhone?.has_adb).map((action) => `<button type="button" class="btn small ghost" data-diagnosis="${esc(action)}">${esc(t(`a_${action}`))}</button>`).join("")}</div>
+      ${actions.includes("reopen_host_mode") && !recoveryPhone?.has_adb ? `<p class="muted">${esc(t("c_host_path"))}</p>` : ""}
+      ${view.hint ? `<p class="muted" role="status" style="white-space:pre-line">${esc(view.hint)}</p>` : ""}</div>`;
+    box.querySelectorAll("[data-diagnosis]").forEach((button) => button.onclick = () => diagnosisAction(button.dataset.diagnosis));
+  } else if (view.kind === "progress") {
+    renderProgress(box);
+  } else {
+    const it = view.item, m = it.meta;
+    box.innerHTML = `<div><img class="out" src="${esc(it.url)}" alt="">
+      <div class="meta">${esc(m.width)}×${esc(m.height)} · ${esc(m.model || "")} · ${t("seed_lbl")} ${esc(m.seed)} · ${esc(t("seconds", ((m.phone_ms || 0) / 1000).toFixed(1)))}${m.phone ? ` · ${esc(m.phone)}` : ""}</div>
+      <div class="actions"><a class="btn small" href="${esc(it.url)}" download>${t("download")}</a>
+      <button type="button" class="btn small ghost" id="reuse">${t("reuse")}</button></div></div>`;
+    $("reuse").onclick = () => reuse(m);
+  }
+}
+
+function renderUsbNote() {
+  const note = $("usbnote"); if (!note) return;
+  const unauthorized = phones.usb_waiting?.length || phones.usb_waiting === true;
+  const markup = phones.adb_available === false
+    ? `${esc(t("c_no_adb"))} <a href="https://developer.android.com/tools/releases/platform-tools" target="_blank" rel="noopener noreferrer">${esc(t("c_tools"))}</a>`
+    : esc(t(unauthorized ? "c_allow" : "c_usb_auto"));
+  if (note._markup !== markup) { note.innerHTML = markup; note._markup = markup; }
+  note.classList.toggle("live", !!unauthorized);
+}
+
+/* progress: what is happening, how far, how long */
+function renderProgress(box) {
+  const now = Date.now() / 1000 + clock, j = job;
+  const stages = j?.stages || [], cur = stages.length ? stages[stages.length - 1][0] : "connect";
+  const seen = stages.map((s) => s[0]), future = waitingFor === "generating" ? ["generate", "save"] : waitingFor === "stopping" ? ["stop"] : [];
+  const order = [...seen, ...future.filter((s) => !seen.includes(s))];
+  const p = j?.progress, times = j?.step_times || [];
+  const rate = times.length > 1 ? (times[times.length - 1] - times[0]) / (times.length - 1) : null;
+  let frac = null, left = null;
+  if (cur === "generate" && p) { frac = 0.08 + 0.88 * p[0] / p[1]; left = rate ? rate * (p[1] - p[0]) + 1 : null; }
+  else if (cur === "save") frac = 0.98;
+  const elapsed = j ? now - j.started : 0;
+  if (left == null && j?.estimate_s && cur !== "save") left = Math.max(0, j.estimate_s + (cur === "generate" ? 0 : 3) - (cur === "generate" ? now - stages[stages.length - 1][1] : 0));
+  const facts = j?.facts ? j.facts : "";
+  const rows = order.map((name) => {
+    const s = stages.find((x) => x[0] === name), state = !s ? "todo" : (s[2] || name !== cur) ? "done" : "now";
+    const dur = s ? fmtS((s[2] || now) - s[1]) : "";
+    let sub = name === "load" ? t("st_load_d") : "";
+    if (name === "generate" && p && state !== "todo") sub = t("step_n", p[0], p[1], rate ? rate.toFixed(1) : null);
+    return `<li class="${state}"><span class="mark">${state === "done" ? "✓" : ""}</span>
+      <span class="what">${esc(t("st_" + name))}${sub ? `<small>${esc(sub)}</small>` : ""}</span><span class="dur">${esc(dur)}</span></li>`;
+  }).join("");
+  box.innerHTML = `<div class="prog" role="status" aria-live="polite">
+    <h3>${t(waitingFor === "connecting" ? "prog_connect" : waitingFor === "stopping" ? "st_stop" : "prog_title")}</h3>
+    <p class="facts">${esc(facts)}</p>
+    <div class="bar ${frac == null ? "indet" : ""}"><i style="transform:scaleX(${frac == null ? 1 : frac.toFixed(3)})"></i></div>
+    <div class="times"><span><b>${fmtS(elapsed)}</b> ${t("elapsed")}</span><span>${left != null ? t("left", fmtS(left)) : ""}</span></div>
+    <ol class="steps">${rows}</ol></div>`;
+}
+
+function reuse(m) {
+  const phone = catalog.find((p) => p.id === m.phone_id && available(p));
+  const model = phone?.models?.find((x) => x.id === m.model_id);
+  if (model) { sel = { phone, model }; modelChanged(); }
+  if (m.prompt != null) $("prompt").value = m.prompt;
+  if (m.negative_prompt != null || m.neg != null) $("neg").value = m.negative_prompt ?? m.neg;
+  const size = capabilities().sizes?.kind === "fixed" ? `${capabilities().sizes.size}x${capabilities().sizes.size}` : `${m.width}x${m.height}`;
+  opts = { ...opts, size, aspect_ratio: m.aspect_ratio ?? "1:1", scheduler: m.scheduler ?? opts.scheduler,
+           steps: m.steps ?? opts.steps, cfg: m.cfg ?? opts.cfg, strength: m.denoise_strength ?? m.strength ?? opts.strength, seed: String(m.seed ?? "") };
+  renderDevices(); renderModels();
+  renderSizes(); sync(); save(); $("prompt").focus();
+}
+
+let waitingFor = null, factsLine = "";
+$("f").onsubmit = async (ev) => {
+  ev.preventDefault();
+  if (waiting || requestPending) return;
+  if (!sel?.model) { view = { kind: "error", msg: t("no_models") }; renderStage(); return; }
+  if (!available(sel.phone)) { view = { kind: "error", msg: t(phoneState(sel.phone)) }; renderStage(); return; }
+  if (!$("prompt").value.trim()) { view = { kind: "error", msg: t("empty_prompt") }; renderStage(); return; }
+  if (!validSize()) { view = { kind: "error", msg: t("bad_size") }; renderStage(); $("width").focus(); return; }
+  const editing = editMode === "references" && capabilities().reference_edit === true;
+  if (editing && (referenceLoading || references.length < 1 || references.length > capabilities().max_references)) {
+    $("referenceerror").textContent = t("edit_count", capabilities().max_references); return;
+  }
+  if (!editing && refData && !capabilities().img2img) { view = { kind: "error", msg: t("img2img_disabled") }; renderStage(); return; }
+  const [width, height] = opts.size.split("x").map(Number);
+  const body = { prompt: $("prompt").value, neg: $("neg").value, seed: opts.seed === "" ? null : Number(opts.seed), steps: opts.steps, cfg: opts.cfg,
+                 scheduler: opts.scheduler, width, height, aspect_ratio: opts.aspect_ratio,
+                 phone_id: sel.phone.id, model_id: sel.model.id };
+  if (capabilities().sizes.kind !== "fixed") delete body.aspect_ratio;
+  if (editing) body.reference_images = references.map((ref) => ref.data);
+  else if (refData) Object.assign(body, { image: refData, reference_name: refName, strength: opts.strength });
+  const mask = exportMask();
+  if (mask !== null) Object.assign(body, { mask, image: $("maskbase").toDataURL("image/png").split(",", 2)[1] });
+  await submitGeneration(body);
+};
+
+async function submitGeneration(body) {
+  if (waiting || requestPending || backendLost || quitting || stopped) return;
+  lastRequest = { ...body };
+  requestPending = true; actionSerial++; renderDevices();
+  try {
+    await post("/api/generate", body);
+    const phone = catalog.find((p) => p.id === body.phone_id) || sel?.phone;
+    const model = phone?.models?.find((m) => m.id === body.model_id) || sel?.model;
+    factsLine = [model?.name || body.model_id, `${body.width}×${body.height}`, `${body.steps} ${t("steps").toLowerCase()}`, phone?.name].filter(Boolean).join(" · ");
+    waiting = true; waitingFor = "generating"; job = null;
+    view = { kind: "progress" }; renderStage();
+  } catch (e) { view = { kind: "error", msg: e.message }; renderStage(); }
+  finally { requestPending = false; renderDevices(); schedulePoll(0); }
+}
+
+async function poll() {
+  if (document.hidden || requestPending || polling) return;
+  polling = true;
+  try { await pollStatus(); } finally { polling = false; }
+}
+async function pollStatus() {
+  if (stopped) return;
+  const serial = actionSerial;
+  let s;
+  try { const r = await fetch("/api/status"); if (!r.ok) throw new Error(); s = await r.json(); }
+  catch {
+    if (quitting) { finishQuit(); return; }
+    backendLost = true; renderStatus(); renderStage(); renderDevices(); return;
+  }
+  if (serial !== actionSerial) return;
+  const recovered = backendLost;
+  backendLost = false;
+  $("quit").hidden = !(s.capabilities?.quit === true || s.quit === true) || quitting;
+  clock = s.now - Date.now() / 1000;
+  if (sel?.model && s.job?.phone_id === sel.phone.id && s.job?.model_id === sel.model.id) {
+    const key = `${sel.phone.id}/${sel.model.id}`;
+    memoryData = { ...(memoryKey === key ? memoryData : {}), app_state: s.job.app_state };
+    memoryKey = key;
+    renderMemory();
+  }
+  const pairingBefore = offerPairing();
+  const was = JSON.stringify(phones.phones.map((p) => [p.id, p.state, p.transport]));
+  phones = s.phones || phones;
+  if (view.kind === "connect" && pairingBefore !== offerPairing()) renderStage();
+  if (JSON.stringify(phones.phones.map((p) => [p.id, p.state, p.transport])) !== was
+      || phones.phones.some((p) => p.state === "ready" && !catalog.find((c) => c.id === p.id)?.models?.length)) {
+    await loadModels();
+  }
+  if (serial !== actionSerial) return;
+  renderStatus();
+  if (waiting) {
+    if (s.busy) { job = s.job ? { ...s.job, facts: factsLine } : job; waitingFor = s.busy === "connecting" ? "connecting" : waitingFor; if (view.kind !== "quit_busy") view = { kind: "progress" }; renderStage(); }
+    else {
+      const failedPhone = job?.phone_id;
+      waiting = false; $("go").disabled = false; job = null;
+      const msg = s.error && errorMessage(s.error);
+      if (s.error && connectionView) view = { ...connectionView, err: msg };
+      else if (s.error && s.diagnosis) view = { kind: "error", msg, diagnosis: s.diagnosis, phone_id: failedPhone || lastRequest?.phone_id };
+      else if (s.error && !anyPhone()) view = { kind: "connect", err: msg };
+      else if (s.error) view = { kind: "error", msg };
+      else if (waitingFor !== "generating") { view = { kind: "empty" }; await loadModels(); }
+      else if (s.last) { view = { kind: "image", item: s.last }; loadGallery(); }
+      else view = { kind: "empty" };
+      connectionView = null; waitingFor = null; renderStage();
+    }
+  } else if (s.busy) {                // started by the background (USB cable)
+    waiting = true; waitingFor = s.busy; job = s.job; factsLine = "";
+    view = { kind: "progress" }; renderStage();
+  } else if (!anyPhone() && view.kind === "empty") { view = { kind: "connect" }; renderStage(); }
+  else if (anyPhone() && view.kind === "connect" && !view.err && !view.manual) { /* keep it open only when asked for */ }
+  renderUsbNote();
+  renderDevices();
+  if (recovered) renderStage();
+}
+
+function renderStatus() {
+  const markup = stopped ? `<span role="status">${esc(t("stopped"))}</span>` : backendLost ? `<span class="pill" role="status">${esc(t("backend_lost"))}</span>`
+    : `${anyPhone() ? "" : `<button class="pill off" id="phonebtn">${esc(t("phone_off"))}</button>`}
+      <button class="txtbtn" id="addphone">+ ${esc(t("add_phone"))}</button>${quitting ? `<span role="status">${esc(t("quit_wait"))}</span>` : ""}`;
+  if ($("status")._markup === markup) return;
+  $("status").innerHTML = markup; $("status")._markup = markup;
+  for (const id of ["phonebtn", "addphone"]) if ($(id)) $(id).onclick = () => { view = { kind: "connect" }; renderStage(); };
+}
+
+let backendLost = false, quitting = false, stopped = false, quitView = null, quitRequest = false;
+function finishQuit() {
+  stopped = true; backendLost = false; waiting = false; job = null;
+  clearTimeout(pollTimer); clearTimeout(pairingTimer); ++pairingEpoch;
+  $("quit").hidden = true;
+  renderStatus(); renderDevices(); renderStage();
+}
+async function quitDesktop(afterJob = false) {
+  if (quitRequest || stopped || quitting) return;
+  quitRequest = true;
+  try {
+    const r = await fetch("/api/quit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(afterJob ? { after_job: true } : {}) });
+    const data = await r.json();
+    if (!r.ok) {
+      if (r.status === 409 && (data.error === "job_running" || data.error === "busy")) { quitView = view; view = { kind: "quit_busy" }; renderStage(); return; }
+      throw new Error(errorMessage({ code: data.error, detail: data.detail }));
+    }
+    if (afterJob) {
+      quitting = true; $("quit").hidden = true; view = quitView || { kind: "empty" };
+      renderStatus(); renderDevices(); renderStage(); schedulePoll(0);
+    } else finishQuit();
+  } catch (e) { view = { kind: "error", msg: e.message || t("offline") }; renderStage(); }
+  finally { quitRequest = false; }
+}
+$("quit").onclick = () => quitDesktop();
+
+async function loadGallery() {
+  try { const r = await fetch("/api/gallery"); if (!r.ok) return; history = await r.json(); } catch { return; }
+  $("grid").innerHTML = "";
+  $("histempty").hidden = history.length > 0;
+  for (const it of history) {
+    const b = document.createElement("div");
+    b.className = "tile"; b.title = it.meta.prompt || "";
+    b.innerHTML = `<button type="button" class="open" aria-label="${esc(t("open_image") + (it.meta.prompt ? ' · ' + it.meta.prompt : ' · ' + (it.meta.model || it.url)))}"><img loading="lazy" src="${esc(it.url)}" alt=""></button>
+      <div class="ov"><button type="button" class="imp">${t("imp")}</button><button type="button" class="del">${t("del")}</button></div>`;
+    b.querySelector(".open").onclick = () => { view = { kind: "image", item: it }; renderStage(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    b.querySelector(".imp").onclick = () => { reuse(it.meta); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    const del = b.querySelector(".del");
+    del.onclick = async () => {
+      if (!del.classList.contains("sure")) { del.classList.add("sure"); del.textContent = t("del_sure"); return; }
+      const r = await fetch("/api/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: it.url }) });
+      if (r.ok) { if (view.item?.url === it.url) { view = { kind: "empty" }; renderStage(); } loadGallery(); }
+    };
+    b.onmouseleave = () => { del.classList.remove("sure"); del.textContent = t("del"); };
+    $("grid").appendChild(b);
+  }
+  renderEstimate();
+}
+
+let polling = false, pollTimer = null, actionSerial = 0;
+function schedulePoll(delay = waiting ? 1000 : 4000) {
+  clearTimeout(pollTimer);
+  if (document.hidden || stopped) return;
+  pollTimer = setTimeout(async () => { try { await poll(); } finally { schedulePoll(); } }, delay);
+}
+document.addEventListener("visibilitychange", () => {
+  clearTimeout(pollTimer); if (!document.hidden) schedulePoll(0);
+  if (!document.hidden && view.kind === "connect") renderStage();
+});
+sync(); applyLang(); loadModels(); loadGallery(); schedulePoll(0);
+setInterval(() => { if (!document.hidden && !backendLost && !stopped && view.kind === "progress") renderStage(); }, 1000);   // keep the clocks moving between polls
+</script>
+</body>
+</html>
