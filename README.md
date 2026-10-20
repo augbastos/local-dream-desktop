@@ -18,7 +18,7 @@ Unofficial companion, not affiliated with [Local Dream](https://github.com/xoror
 > [!NOTE]
 > - Needs a Local Dream version with host mode (Device link) and a downloaded model on a
 >   supported Android phone.
-> - **Windows:** portable download, no Python needed. **macOS / Linux:** run from source;
+> - **Windows:** portable download, no Python needed. **macOS / Linux:** [run from source](docs/user-guide.md#run-from-source);
 >   a Linux portable build has automated CI checks only.
 > - Wi-Fi works without extra software. USB needs Android Platform-Tools.
 > - The phone's host-mode ports have **no authentication**: use a trusted network or USB.
@@ -27,6 +27,9 @@ Unofficial companion, not affiliated with [Local Dream](https://github.com/xoror
 >   with the official app; USB, macOS and Linux with a real phone are untested.
 
 ## Quick Start
+
+**macOS / Linux:** [Run from source](docs/user-guide.md#run-from-source), then follow
+steps 4–6 below. **Windows:**
 
 1. Download the Windows portable ZIP from [Releases](../../releases).
 2. Extract the whole folder and keep its files together.

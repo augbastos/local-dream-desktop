@@ -137,20 +137,26 @@ binds to **127.0.0.1 only**. Turn off USB debugging when you no longer need it.
 
 ## Run from source
 
-Install **Python 3.10+**, open a terminal in the source folder and run:
+Install **Python 3.10+** and open a terminal in the source folder.
 
-```sh
-pip install -r requirements.txt
+**Windows:** install the dependency, then double-click **Local Dream Desktop.cmd**:
+
+```powershell
+python -m pip install -r requirements.txt
 ```
 
-On Windows, double-click **Local Dream Desktop.cmd**. On Linux / macOS, run:
+**macOS / Linux:** create a virtual environment, install the dependency and launch:
 
 ```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
 sh local-dream-desktop.sh
 ```
 
-The launcher opens **http://127.0.0.1:47865/**. You can also run
-`python local_dream_desktop.py` (`python3` on Linux / macOS).
+The shell launcher automatically uses `.venv`. It opens **http://127.0.0.1:47865/**;
+continue with [Connect](#connect) and [Generate](#generate).
+You can also run `python local_dream_desktop.py` on Windows or
+`.venv/bin/python local_dream_desktop.py` on macOS / Linux.
 
 ## CLI
 
