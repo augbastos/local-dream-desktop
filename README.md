@@ -95,6 +95,12 @@ The test runner uses up to one process per CPU, keeping each test module isolate
 Use `python tools/test_fast.py --jobs 1` for serial execution. The standard
 `python -m unittest discover -s tests` command also remains supported.
 
+CI runs the Python tests and page check on Linux and Windows with Python 3.10
+and 3.13. The required checks are `Safety` and `CI passed`. On pull requests,
+`Safety` scans for secrets and checks critical paths using the base revision's
+policy. `CI passed` requires every test combination to pass and permits a skipped
+`Safety` check only outside pull requests.
+
 ## Layout
 
 | Path | Contents |
