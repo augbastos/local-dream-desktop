@@ -86,10 +86,14 @@ The full [user guide](docs/user-guide.md) covers setup, editing, troubleshooting
 ## Test
 
 ```sh
-python -m pip install -r requirements.txt
-python -m unittest discover -s tests
+python -m pip install -r requirements-ci.txt
+python tools/test_fast.py
 node tests/check_page.js
 ```
+
+The test runner uses up to one process per CPU, keeping each test module isolated.
+Use `python tools/test_fast.py --jobs 1` for serial execution. The standard
+`python -m unittest discover -s tests` command also remains supported.
 
 ## Layout
 
