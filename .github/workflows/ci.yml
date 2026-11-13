@@ -1,9 +1,11 @@
+# CI profile: public
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -13,13 +15,71 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  safety:
+    name: Safety
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout safety policy from the base revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base-policy
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      # One-time bootstrap: this migration's base has no safety.sh yet.
+      # Only then use the PR copy; subsequent PRs always execute the base copy.
+      - name: Bootstrap safety policy from the PR
+        if: hashFiles('base-policy/.github/scripts/safety.sh') == ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: bootstrap-policy
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Checkout PR history for secret scanning
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check secrets and critical effects
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          COMMITS: ${{ github.event.pull_request.commits }}
+          PR_DIR: ${{ github.workspace }}/pr
+        run: |
+          if [ -f base-policy/.github/scripts/safety.sh ]; then
+            bash base-policy/.github/scripts/safety.sh
+          else
+            echo 'One-time bootstrap: safety.sh is absent from the base; running the PR copy.'
+            bash bootstrap-policy/.github/scripts/safety.sh
+          fi
+
   test:
+    name: Test (${{ matrix.platform }}, Python ${{ matrix.python }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 4
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python: ['3.10', '3.13']
+        include:
+          - os: ubuntu-latest
+            platform: Linux
+          - os: windows-latest
+            platform: Windows
     env:
       GIT_CONFIG_COUNT: '1'
       GIT_CONFIG_KEY_0: commit.gpgsign
@@ -42,21 +102,19 @@ jobs:
       - run: python tools/test_fast.py
       - run: node tests/check_page.js
 
-  ci-ok:
-    # The one check the branch ruleset requires from this workflow. Matrix job
-    # names change when a version is added or dropped, and a required check
-    # that no longer exists blocks every pull request; this name never changes.
-    name: ci-ok
+  ci-passed:
+    name: CI passed
+    needs: [safety, test]
     if: always()
-    needs: [test]
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
-      - name: Every job passed
+      - name: Require every job to succeed
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          echo "results: $RESULTS"
-          for result in $RESULTS; do
-            [ "$result" = "success" ] || exit 1
-          done
+          jq -e --arg event "$EVENT_NAME" '
+            to_entries | all(.value.result == "success" or
+              (.key == "safety" and .value.result == "skipped" and $event != "pull_request"))
+          ' <<< "$NEEDS_JSON"
