@@ -91,11 +91,17 @@ class SafetyTests(unittest.TestCase):
             root = Path(directory)
             fake = root / 'bin'
             fake.mkdir()
+            if changes.pop('PLANT_GITLEAKS', None):
+                for name in ('.gitleaksignore', '.gitleaks.toml'):
+                    (root / name).write_text('allow everything\n')
             scripts = {
                 'curl': 'exit "${DOWNLOAD_STATUS:-0}"\n',
                 'sha256sum': 'cat >/dev/null\nexit "${CHECKSUM_STATUS:-0}"\n',
                 'tar': 'cp "$FAKE_GITLEAKS" "$4/gitleaks"\nchmod +x "$4/gitleaks"\n',
-                'gitleaks': 'printf "%s\\n" "$*" > "$SCAN_ARGS"\nexit "${SCAN_STATUS:-0}"\n',
+                'gitleaks': ('printf "%s\\n" "$*" > "$SCAN_ARGS"\n'
+                             '[ -e .gitleaksignore ] || [ -e .gitleaks.toml ] && echo present >> "$SCAN_ARGS"\n'
+                             'exit "${SCAN_STATUS:-0}"\n'),
+                'git': 'printf "%s\\n" "${HEAD_SHA_FAKE:-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb}"\n',
                 'gh': '''
                     case "$*" in
                       *'/pulls/'*) printf '%s\\n' "$CHANGED_FILES" ;;
@@ -134,8 +140,29 @@ class SafetyTests(unittest.TestCase):
         self.assertIn('5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba', script)
         code, output, args = self.run_policy()
         self.assertEqual(code, 0, output)
-        self.assertEqual(args.strip(), 'git --no-banner --redact --log-opts=-n 3 .')
+        self.assertIn('--ignore-gitleaks-allow', args)
+        self.assertIn('--config ', args)
+        self.assertIn('--gitleaks-ignore-path ', args)
+        self.assertIn('--log-opts=--text --no-textconv --no-ext-diff --diff-merges=first-parent '
+                      + 'a' * 40 + '..' + 'b' * 40, args)
         self.assertIn('no critical effect', output)
+
+    def test_pr_cannot_configure_its_own_scanner(self):
+        # The PR's .gitleaksignore/.gitleaks.toml are gone before gitleaks runs,
+        # and adding or changing them (or .gitattributes) needs the owner.
+        code, output, args = self.run_policy(PLANT_GITLEAKS='1')
+        self.assertEqual(code, 0, output)
+        self.assertNotIn('present', args)
+        for path in ('.gitleaksignore', 'sub/.gitleaks.toml', '.gitattributes'):
+            code, output, _ = self.run_policy(CHANGED_FILES=path)
+            self.assertEqual(code, 1, output)
+            self.assertIn('changes what the secret scan sees', output)
+
+    def test_invalid_commit_ids_fail_closed(self):
+        for changes in (dict(BASE='main'), dict(HEAD_SHA_FAKE='HEAD')):
+            code, output, _ = self.run_policy(**changes)
+            self.assertEqual(code, 1, output)
+            self.assertIn('invalid base or head commit', output)
 
     def test_public_self_protection(self):
         for path in ('.github/scripts/safety.sh', '.github/safety-critical.txt',
