@@ -19,7 +19,7 @@ if not errorlevel 1 (
     set "LDPC_ARGS=-3"
     goto check
 )
-echo Python 3.10 or newer was not found. Install Python, then run:
+echo Python 3.11 or newer was not found. Install Python, then run:
 echo py -m pip install -r requirements.txt
 goto failed
 

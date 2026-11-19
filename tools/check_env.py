@@ -78,9 +78,9 @@ def port_status():
 
 def check():
     checks = []
-    supported = sys.version_info >= (3, 10)
+    supported = sys.version_info >= (3, 11)
     checks.append({"name": "python", "ok": supported,
-                   "detail": "Python {} (requires 3.10+)".format(sys.version.split()[0])})
+                   "detail": "Python {} (requires 3.11+)".format(sys.version.split()[0])})
     try:
         importlib.import_module("PIL.Image")
         pillow = True

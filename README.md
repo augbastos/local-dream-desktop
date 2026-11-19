@@ -42,7 +42,7 @@ Version 0.1.0 is the first public release candidate (see the [changelog](CHANGEL
   supported Android phone.
 - Wi-Fi works without extra software. USB needs Android Platform-Tools.
 - **Windows:** portable download, no Python needed.
-- **macOS / Linux:** [run from source](docs/user-guide.md#run-from-source) with Python 3.10+.
+- **macOS / Linux:** [run from source](docs/user-guide.md#run-from-source) with Python 3.11+.
 
 > [!WARNING]
 > The phone's host-mode ports have **no authentication**: use a trusted network or USB.
@@ -95,7 +95,7 @@ The test runner uses up to one process per CPU, keeping each test module isolate
 Use `python tools/test_fast.py --jobs 1` for serial execution. The standard
 `python -m unittest discover -s tests` command also remains supported.
 
-CI runs the Python tests and page check on Linux and Windows with Python 3.10
+CI runs the Python tests and page check on Linux and Windows with Python 3.11
 and 3.13. The required checks are `Safety` and `CI passed`. On pull requests,
 `Safety` scans for secrets and checks critical paths using the base revision's
 policy. `CI passed` requires every test combination to pass and permits a skipped

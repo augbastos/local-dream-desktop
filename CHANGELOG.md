@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Minimum Python is now 3.11 and Pillow 13 is required. Pillow 13 carries the
+  fixes for the open Pillow security advisories and needs Python 3.11 or newer.
+
 ## 0.1.0 — October 2026
 
 First public release candidate.

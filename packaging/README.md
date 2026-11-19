@@ -2,7 +2,7 @@
 
 ## Build and smoke-test
 
-1. Install build requirements in a dedicated Python 3.10+ environment.
+1. Install build requirements in a dedicated Python 3.11+ environment.
 2. Build natively on the target OS; cross-compilation is not supported.
 3. Run the build and packaged smoke check:
 
@@ -26,7 +26,7 @@ Keep the whole extracted folder together. No Python installation is required.
 The folder also includes `tools/install_skill.py` and its skill template. To
 install the optional assistant skill:
 
-1. Use Python 3.10+ to run `python tools/install_skill.py` from the extracted
+1. Use Python 3.11+ to run `python tools/install_skill.py` from the extracted
    folder (`--codex` for Codex).
 2. Reinstall the skill after moving the folder; it records this package's location.
 
