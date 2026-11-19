@@ -11,7 +11,7 @@ else
     LDPC_PY=python3
 fi
 if ! command -v "$LDPC_PY" >/dev/null 2>&1; then
-    echo 'Python 3.10 or newer is required. Install Python, then run:' >&2
+    echo 'Python 3.11 or newer is required. Install Python, then run:' >&2
     echo 'python3 -m venv .venv && .venv/bin/pip install -r requirements.txt' >&2
     exit 1
 fi

@@ -53,7 +53,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn('pull_request_target', workflow)
         test = jobs['test']
         self.assertIn('os: [ubuntu-latest, windows-latest]', test)
-        self.assertIn("python: ['3.10', '3.13']", test)
+        self.assertIn("python: ['3.11', '3.13']", test)
         self.assertIn('os: ubuntu-latest\n            platform: Linux', test)
         self.assertIn('os: windows-latest\n            platform: Windows', test)
         self.assertIn('cache: pip', test)

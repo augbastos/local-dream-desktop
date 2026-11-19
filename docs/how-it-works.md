@@ -1,6 +1,6 @@
 # How Local Dream Desktop works
 
-Local Dream Desktop uses Python 3.10+ and Pillow. The browser page is plain HTML,
+Local Dream Desktop uses Python 3.11+ and Pillow. The browser page is plain HTML,
 CSS and JavaScript. The phone runs all inference through Local Dream's host mode.
 There are no cloud services, accounts or telemetry in the companion.
 
@@ -469,7 +469,7 @@ Startup errors include the log path; a windowed Windows launch uses a native
 dialog when stderr is unavailable.
 
 The package includes `tools/install_skill.py` and
-`.claude/skills/local-dream/SKILL.md`. With Python 3.10+ available:
+`.claude/skills/local-dream/SKILL.md`. With Python 3.11+ available:
 
 1. Run `python tools/install_skill.py` from the source or package folder to
    install the optional skill for Claude Code, or add `--codex` for Codex.

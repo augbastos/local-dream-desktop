@@ -14,7 +14,7 @@ CLI: `{{LDPC_CLI}}`
 
 If the placeholders were not replaced, resolve the installation root containing
 this `.claude` folder. Use its `ldd.exe --cli` (or `ldd --cli` on Linux/macOS) when
-present; otherwise use `python sdgen.py` from that root with Python 3.10+
+present; otherwise use `python sdgen.py` from that root with Python 3.11+
 (`python3` where appropriate). Replace the command placeholder before running
 examples. Quote paths with spaces; PowerShell needs `&` before a quoted executable.
 Packaged CLI commands do not need Python. Never use an unrelated developer checkout.

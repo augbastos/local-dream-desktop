@@ -137,7 +137,7 @@ binds to **127.0.0.1 only**. Turn off USB debugging when you no longer need it.
 
 ## Run from source
 
-Install **Python 3.10+** and open a terminal in the source folder.
+Install **Python 3.11+** and open a terminal in the source folder.
 
 **Windows:** install the dependency, then double-click **Local Dream Desktop.cmd**:
 
